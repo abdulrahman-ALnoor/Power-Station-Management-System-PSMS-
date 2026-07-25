@@ -36,10 +36,7 @@ return new class extends Migration
 
             $table->text('payment_notes')->nullable();
 
-            $table->foreignId('created_by')
-                ->nullable()
-                ->constrained('users')
-                ->nullOnDelete();
+           
             $table->timestamps();
             $table->softDeletes();
         });

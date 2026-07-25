@@ -15,33 +15,22 @@ return new class extends Migration
 
         Schema::create('meter_readings', function (Blueprint $table) {
             $table->id();
-
-            $table->foreignId('meter_id')
-                ->constrained()
-                ->cascadeOnDelete();
-
-            // $table->foreignId('meter_reader_id')
-            // ->constrained('users');
-
             $table->foreignId('created_by')
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete();
-
+            $table->foreignId('meter_id')
+                ->constrained('meters')
+                ->cascadeOnDelete();
             $table->decimal('previous_reading', 12, 2);
             $table->decimal('current_reading', 12, 2);
             $table->decimal('consumption', 12, 2);
             $table->decimal('price_per_kwh', 10, 2);
             $table->decimal('reading_cost', 12, 2);
-
             $table->date('reading_date')->index();
-
             $table->enum('reading_method', ['manual', 'qr_scan'])->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->nullable()->index();
-
             $table->text('notes')->nullable();
-
-
             $table->timestamps();
             $table->softDeletes();
         });

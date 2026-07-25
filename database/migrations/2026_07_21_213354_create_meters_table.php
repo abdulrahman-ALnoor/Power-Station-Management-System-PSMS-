@@ -18,8 +18,8 @@ return new class extends Migration
             $table->foreignId('customer_id')
                 ->constrained()
                 ->cascadeOnDelete();
-            $table->string('meter_number', 100)->unique()->index();
-            $table->string('qr_code', 255)->unique()->index();
+            $table->string('meter_number', 100)->unique();
+            $table->string('qr_code', 255)->unique();
             $table->date('installation_date')->nullable();
             $table->text('installation_location')->nullable();
             $table->enum('status', ["active","disconnected","maintenance","damaged"])->index()->nullable();

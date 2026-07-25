@@ -15,31 +15,25 @@ return new class extends Migration
 
         Schema::create('equipment', function (Blueprint $table) {
             $table->id();
-
             $table->foreignId('user_id')
                 ->constrained()
-                ->cascadeOnDelete();
-
+                ->nullOnDelete();
+                
             $table->string('equipment_name', 150);
-
             $table->string('serial_number', 100)
                 ->nullable()
                 ->unique();
-
             $table->enum('status', [
                 'available',
                 'maintenance',
                 'damaged',
                 'lost',
             ])->nullable()->index();
-
             $table->text('notes')->nullable();
-
             $table->foreignId('created_by')
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete();
-
             $table->timestamps();
             $table->softDeletes();
         });

@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Invoice extends Model
+{
+    //
+
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'invoice_number',
+        'customer_id',
+        'accountant_id',
+        'outstanding_before_payment',
+        'paid_amount',
+        'remaining_balance',
+        'status',
+        'payment_notes',
+        
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'outstanding_before_payment' => 'decimal:2',
+            'paid_amount' => 'decimal:2',
+            'remaining_balance' => 'decimal:2',
+        ];
+    }
+
+
+    // the customer() function defines a belongsTo relationship with the Customer model.
+    // It allows you to access the customer associated with the invoice.
+    // the relationship is one-to-many, where one customer can have many invoices.
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+
+    // the accountant() function defines a belongsTo relationship with the User model.
+    // It allows you to access the user who is the accountant for the invoice.
+    // the relationship is one-to-many, where one user can be the accountant for many invoices
+    public function accountant()
+    {
+        return $this->belongsTo(User::class, 'accountant_id');
+    }
+
+    // the consumptionCharge() function defines a hasOne relationship with the ConsumptionCharge model.
+    // It allows you to access the consumption charge associated with the invoice.
+    // the relationship is many-to-one, where each invoice is associated with one consumption charge.
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+   
+}
+
