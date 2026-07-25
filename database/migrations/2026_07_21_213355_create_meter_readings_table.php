@@ -20,8 +20,13 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->foreignId('meter_reader_id')
-                ->constrained('users');
+            // $table->foreignId('meter_reader_id')
+            // ->constrained('users');
+
+            $table->foreignId('created_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
 
             $table->decimal('previous_reading', 12, 2);
             $table->decimal('current_reading', 12, 2);
@@ -36,10 +41,6 @@ return new class extends Migration
 
             $table->text('notes')->nullable();
 
-            $table->foreignId('created_by')
-                ->nullable()
-                ->constrained('users')
-                ->nullOnDelete();
 
             $table->timestamps();
             $table->softDeletes();
