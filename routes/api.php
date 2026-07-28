@@ -11,7 +11,5 @@ Route::get('/user', function (Request $request) {
 
 
 
-
-
 Route::apiResource('/invoices' , InvoiceController::class);
 Route::apiResource('/meter-readings' , MeterReadingController::class);
