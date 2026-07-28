@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\MeterReadingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -9,3 +11,7 @@ Route::get('/user', function (Request $request) {
 
 
 
+
+
+Route::apiResource('/invoices' , InvoiceController::class);
+Route::apiResource('/meter-readings' , MeterReadingController::class);
