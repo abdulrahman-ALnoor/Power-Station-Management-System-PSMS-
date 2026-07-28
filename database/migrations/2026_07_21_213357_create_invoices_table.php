@@ -25,6 +25,10 @@ return new class extends Migration
             $table->foreignId('accountant_id')
                 ->constrained('users');
 
+            $table->foreignId('consumption_charge_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
             $table->decimal('outstanding_before_payment', 12, 2);
             $table->decimal('paid_amount', 12, 2);
             $table->decimal('remaining_balance', 12, 2);
