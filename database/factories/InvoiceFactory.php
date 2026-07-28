@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Customer;
 use App\Models\User;
+use App\Models\ConsumptionCharge;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class InvoiceFactory extends Factory
@@ -19,6 +20,8 @@ class InvoiceFactory extends Factory
             'customer_id' => Customer::factory(),
 
             'accountant_id' => User::factory(),
+
+            'consumption_charge_id' => ConsumptionCharge::factory(),
 
             'outstanding_before_payment' => $outstanding,
 
