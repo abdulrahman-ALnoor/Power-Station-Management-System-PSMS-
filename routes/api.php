@@ -10,5 +10,6 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 
+
 Route::apiResource('/invoices' , InvoiceController::class);
 Route::apiResource('/meter-readings' , MeterReadingController::class);
