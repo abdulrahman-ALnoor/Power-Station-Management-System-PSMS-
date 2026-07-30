@@ -41,6 +41,14 @@ public function show($id)
     public function store(Request $request)
     {
         //
+         $invoice = Invoice::create($request->all());
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'تم إنشاء الفاتورة بنجاح',
+        'data' => $invoice
+    ], 201);
+        
     }
 
     
@@ -58,6 +66,15 @@ public function show($id)
     public function update(Request $request, string $id)
     {
         //
+          $invoice = Invoice::findOrFail($id);
+
+    $invoice->update($request->all());
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'تم تحديث الفاتورة بنجاح',
+        'data' => $invoice
+    ], 200);
     }
 
     /**
@@ -65,6 +82,14 @@ public function show($id)
      */
     public function destroy(string $id)
     {
+         $invoice = Invoice::findOrFail($id);
+
+    $invoice->delete();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'تم حذف الفاتورة بنجاح'
+    ], 200);
         //
     }
 }

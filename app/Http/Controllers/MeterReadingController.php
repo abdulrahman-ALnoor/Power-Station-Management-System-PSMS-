@@ -50,6 +50,13 @@ public function show($id)
     public function store(Request $request)
     {
         //
+        $meterReading = MeterReading::create($request->all());
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'تم إنشاء قراءة العداد بنجاح',
+        'data' => $meterReading,
+    ], 201);
     }
 
    
@@ -68,6 +75,15 @@ public function show($id)
     public function update(Request $request, string $id)
     {
         //
+        $meterReading = MeterReading::findOrFail($id);
+
+    $meterReading->update($request->all());
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'تم تحديث قراءة العداد بنجاح',
+        'data' => $meterReading,
+    ], 200);
     }
 
     /**
@@ -76,5 +92,13 @@ public function show($id)
     public function destroy(string $id)
     {
         //
+         $meterReading = MeterReading::findOrFail($id);
+
+    $meterReading->delete();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'تم حذف قراءة العداد بنجاح',
+    ], 200);
     }
 }
