@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\MeterReadingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
@@ -14,3 +16,7 @@ Route::apiResource('customers', CustomerController::class);
 
 // مسارات ملفات الشركات للـ API
 Route::apiResource('company-profiles', CompanyProfileController::class);
+
+
+Route::apiResource('/invoices' , InvoiceController::class);
+Route::apiResource('/meter-readings' , MeterReadingController::class);

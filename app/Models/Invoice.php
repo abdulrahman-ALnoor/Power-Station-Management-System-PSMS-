@@ -59,6 +59,14 @@ class Invoice extends Model
         return $this->hasMany(Notification::class);
     }
 
+    // the consumptionCharge() function defines a belongsTo relationship with the ConsumptionCharge model.
+    // It allows you to access the consumption charge associated with the invoice.
+    // the relationship is many-to-one, where each invoice is associated with one consumption charge.
+    public function consumptionCharge()
+    {
+        return $this->belongsTo(ConsumptionCharge::class);
+    }
+
    
 }
 
