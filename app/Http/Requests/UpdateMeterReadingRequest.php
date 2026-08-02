@@ -22,20 +22,15 @@ class UpdateMeterReadingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'meter_id' => [
-                'sometimes',
-                'exists:meters,id',
-            ],
-
 
             'current_reading' => [
-                'sometimes',
+                'required',
                 'numeric',
                 'min:0',
             ],
 
             'reading_date' => [
-                'sometimes',
+                'required',
                 'date',
             ],
 
@@ -49,6 +44,23 @@ class UpdateMeterReadingRequest extends FormRequest
                 'string',
                 'max:1000',
             ],
+        ];
+    }
+    public function messages(): array
+    {
+        return [
+
+            'current_reading.required' => 'القراءة الحالية مطلوبة.',
+            'current_reading.numeric' => 'القراءة الحالية يجب أن تكون رقمية.',
+            'current_reading.min' => 'القراءة الحالية يجب أن تكون أكبر من أو تساوي 0.',
+
+            'reading_date.required' => 'تاريخ القراءة مطلوب.',
+            'reading_date.date' => 'تاريخ القراءة يجب أن يكون تاريخًا صالحًا.',
+
+            'reading_method.in' => 'طريقة القراءة يجب أن تكون إما "manual" أو "qr_scan".',
+
+            'notes.string' => 'الملاحظات يجب أن تكون نصًا.',
+            'notes.max' => 'الملاحظات يجب ألا تتجاوز 1000 حرف.',
         ];
     }
 }

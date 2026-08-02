@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MeterReading;
 use App\Models\CompanyProfile;
 use App\Models\ConsumptionCharge;
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +22,8 @@ class MeterReadingController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // this function is used to get the list of meter readings with filters and pagination
+    // the filters are: search by meter number or customer name, filter by status, filter by year, month and day
     public function index(Request $request)
     {
         $query = MeterReading::query();
@@ -66,7 +69,8 @@ class MeterReadingController extends Controller
         return $this->success('تم جلب قراءات العدادات بنجاح.',MeterReadingResource::collection($readings));
         
     }
-
+    // this function is used to get the statistics of meter readings
+    // the statistics are: total readings, total consumption, expected revenue, approved readings, pending readings, rejected readings, this month consumption, this month revenue
     public function stats(Request $request)
 {
     // 1. إجمالي عدد القراءات
@@ -131,6 +135,8 @@ class MeterReadingController extends Controller
     /**
      * Store a newly created resource in storage.
      */
+    // this function is used to store a new meter reading and create a corresponding consumption charge
+    // it uses a transaction to ensure that both the meter reading and consumption charge are created successfully
     public function store(StoreMeterReadingRequest $request)
     {
         try{
@@ -210,6 +216,8 @@ class MeterReadingController extends Controller
     /**
      * Display the specified resource.
      */
+    // this function is used to show a specific meter reading with its related data
+    // it loads the meter, customer, creator, and consumption charge relationships for the specified meter reading
     public function show(MeterReading $meterReading)
     {
         $meterReading->load([ 'meter.customer', 'creator', 'consumptionCharge', ]);
@@ -219,13 +227,72 @@ class MeterReadingController extends Controller
     /**
      * Update the specified resource in storage.
      */
+
+    // this function is used to update a specific meter reading and its corresponding consumption charge
+    // it checks if the meter reading is the latest one for the meter before allowing the update
+    // it also checks if there are any invoices associated with the consumption charge before allowing the update
+    // it also recalculates the consumption and reading cost based on the updated current reading
+    // it uses a transaction to ensure that both the meter reading and consumption charge are updated successfully
     public function update(UpdateMeterReadingRequest $request, MeterReading $meterReading)
     {
         try {
             $validated = $request->validated();
-            $meterReading->update($validated);
-            $meterReading->load([ 'meter.customer', 'creator', 'consumptionCharge', ]);
-            return $this->success('تم تحديث قراءة العداد بنجاح.', new MeterReadingResource($meterReading->fresh()));
+            $companyProfile = CompanyProfile::first();
+            if(!$companyProfile){
+                throw new \Exception('لم يتم إعداد بيانات الشركة بعد. يرجى إعدادها قبل إضافة قراءة العداد.');
+            }
+            $lastReading = MeterReading::where('meter_id', $meterReading->meter_id)
+            ->latest('reading_date')
+            ->latest('id')
+            ->first();
+            if ($meterReading->id !== $lastReading->id) {
+                return $this->error(
+                    'لا يمكن تعديل هذه القراءة لأنها ليست آخر قراءة لهذا العداد.',
+                    422
+                );
+            }
+            $hasInvoice = $meterReading->consumptionCharge
+                ->invoice()
+                ->exists();
+
+            if ($hasInvoice) {
+                return $this->error(
+                    'لا يمكن تعديل القراءة بعد تسجيل عملية دفع لها.',
+                    422
+                );
+            }
+
+            $previousReading = MeterReading::where('meter_id', $meterReading->meter_id)
+            ->where('id', '!=', $meterReading->id)
+            ->latest('reading_date')
+            ->latest('id')
+            ->value('current_reading') ?? 0;
+
+            $consumption = $validated['current_reading'] - $previousReading;
+            $readingCost = $consumption * $companyProfile->price_per_kwh;
+
+
+            $meterReading->update([
+                'previous_reading' => $previousReading,
+                'current_reading' => $validated['current_reading'],
+                'consumption' => $consumption,
+                'price_per_kwh' => $companyProfile->price_per_kwh,
+                'reading_cost' => $readingCost,
+                'reading_date' => $validated['reading_date'],
+                'reading_method' => $validated['reading_method'] ?? null,
+                'status' => $validated['status'] ?? $meterReading->status,
+                'notes' => $validated['notes'] ?? $meterReading->notes,
+            ]);
+            
+            
+
+            
+
+            ConsumptionCharge::where('meter_reading_id', $meterReading->id)->update([
+                'total_amount' => $readingCost,
+                'remaining_amount' => $readingCost - ConsumptionCharge::where('meter_reading_id', $meterReading->id)->value('paid_amount'),
+            ]);
+
         } catch (\Exception $e) {
             return $this->error('حدث خطأ أثناء تحديث قراءة العداد: ' . $e->getMessage());
         }
@@ -234,6 +301,8 @@ class MeterReadingController extends Controller
     /**
      * Remove the specified resource from storage.
      */
+    // this function is used to delete a specific meter reading
+    // it uses a try-catch block to handle any exceptions that may occur during the deletion
     public function destroy(MeterReading $meterReading)
     {
         try {

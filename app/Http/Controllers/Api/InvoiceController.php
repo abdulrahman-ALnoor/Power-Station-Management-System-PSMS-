@@ -20,6 +20,9 @@ class InvoiceController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // this function is used to get a list of invoices with optional search and filtering
+    // it supports searching by invoice number or customer name, filtering by status, and filtering by year and month
+    // it returns a paginated response with the invoices and their related customer, accountant, and consumption charge data
     public function index(Request $request)
     {
         $query = Invoice::query();
@@ -67,6 +70,9 @@ class InvoiceController extends Controller
         return $this->success('تم جلب الفواتير بنجاح.', InvoiceResource::collection($invoices));
     }
 
+    // this function is used to get statistics about invoices
+    // it calculates total revenue, total invoices, paid invoices count, partially paid invoices count, overdue amount, and this month's collections
+    // it returns a response with the calculated statistics
     public function stats()
     {
     // 1. إجمالي الإيرادات المحصلة بالفعل
@@ -103,6 +109,12 @@ class InvoiceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
+
+    // this function is used to create a new invoice and update the corresponding consumption charge
+    // it first checks if the paid amount does not exceed the remaining amount of the consumption charge
+    // it then calculates the new remaining balance and paid amount, and determines the status of the invoice and consumption charge
+    // it uses a transaction to ensure that both the invoice creation and consumption charge update are successful
+    // it returns a response with the created invoice data
     public function store(StoreInvoiceRequest $request)
     {
         // 1. جلب الدين الحقيقي من قاعدة البيانات
@@ -183,6 +195,10 @@ class InvoiceController extends Controller
     /**
      * Display the specified resource.
      */
+
+    // this function is used to get the details of a specific invoice
+    // it loads the related customer, accountant, and consumption charge data
+    // it returns a response with the invoice data
     public function show(Invoice $invoice)
     {
         $invoice->load([

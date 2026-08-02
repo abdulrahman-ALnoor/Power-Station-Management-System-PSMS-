@@ -29,4 +29,22 @@ class UpdateInvoiceRequest extends FormRequest
             'payment_notes'              => ['nullable', 'string', 'max:1000'],
         ];
     }
+    public function messages(): array
+    {
+        return [
+            'outstanding_before_payment.numeric' => 'المبلغ المستحق قبل الدفع يجب أن يكون رقمًا.',
+            'outstanding_before_payment.min' => 'المبلغ المستحق قبل الدفع يجب أن يكون أكبر من أو يساوي 0.',
+
+            'paid_amount.numeric' => 'المبلغ المدفوع يجب أن يكون رقمًا.',
+            'paid_amount.min' => 'المبلغ المدفوع يجب أن يكون أكبر من أو يساوي 0.',
+
+            'remaining_balance.numeric' => 'الرصيد المتبقي يجب أن يكون رقمًا.',
+            'remaining_balance.min' => 'الرصيد المتبقي يجب أن يكون أكبر من أو يساوي 0.',
+
+            'status.in' => 'الحالة يجب أن تكون إما "paid" أو "partially_paid".',
+
+            'payment_notes.string' => 'ملاحظات الدفع يجب أن تكون نصًا.',
+            'payment_notes.max' => 'ملاحظات الدفع يجب ألا تتجاوز 1000 حرف.',
+        ];
+    }
 }
