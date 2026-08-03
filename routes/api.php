@@ -9,6 +9,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::get('/invoices/stats', [InvoiceController::class, 'stats']);
+Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
 
 
 Route::apiResource('/invoices' , InvoiceController::class);

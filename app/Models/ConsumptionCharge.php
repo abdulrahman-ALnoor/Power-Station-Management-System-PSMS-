@@ -56,11 +56,11 @@ class ConsumptionCharge extends Model
         return $this->belongsTo(MeterReading::class);
     }
 
-    // the invoices() function defines a hasOne relationship with the Invoice model.
+    // the invoices() function defines a hasMany relationship with the Invoice model.
     // It allows you to access the invoices associated with the consumption charge.
     // the relationship is one-to-many, where one consumption charge can have many invoices.
     public function invoices()
     {
-        return $this->hasOne(Invoice::class);
+        return $this->hasMany(Invoice::class);
     }
 }

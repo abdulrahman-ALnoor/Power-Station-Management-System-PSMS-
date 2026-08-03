@@ -16,6 +16,7 @@ class Invoice extends Model
         'invoice_number',
         'customer_id',
         'accountant_id',
+        'consumption_charge_id',
         'outstanding_before_payment',
         'paid_amount',
         'remaining_balance',
@@ -31,6 +32,26 @@ class Invoice extends Model
             'paid_amount' => 'decimal:2',
             'remaining_balance' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Boot function to generate invoice_number automatically upon creation.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function ($invoice) {
+            // يتم التوليد فقط إذا لم يُرسَل رقم فاتورة يدوي
+            if (empty($invoice->invoice_number)) {
+                $year = date('Y');
+                
+                // جلب آخر فاتورة مُنشأة لحساب الرقم التسلسلي القادم
+                $latestInvoice = static::withTrashed()->latest('id')->first();
+                $nextSequence = $latestInvoice ? ($latestInvoice->id + 1) : 1;
+
+                // التنسيق النهائي: INV-2026-0001
+                $invoice->invoice_number = 'INV-' . $year . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+            }
+        });
     }
 
 
@@ -67,6 +88,6 @@ class Invoice extends Model
         return $this->belongsTo(ConsumptionCharge::class);
     }
 
-   
+
 }
 
