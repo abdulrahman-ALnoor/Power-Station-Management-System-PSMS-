@@ -50,44 +50,10 @@ Route::get('/meter-readings/{id}', [MeterReadingController::class, 'show'])
     ->name('meter-readings.show');
 
 
-/*
-|--------------------------------------------------------------------------
-| Customer Routes
-|--------------------------------------------------------------------------
-*/
+// مسارات العملاء والشركات (راوت واحد يغطي كافة الدوال الـ 7 أو الـ 5 تلقائياً)
+Route::resource('customers', CustomerController::class);
+Route::resource('company-profiles', CompanyProfileController::class);
 
-Route::get('/customers', [CustomerController::class, 'index'])
-    ->name('customers.index');
-
-Route::get('/customers/{id}', [CustomerController::class, 'show'])
-    ->name('customers.show');
-
-
-/*
-|--------------------------------------------------------------------------
-| Company Profile Routes
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/company-profiles', [CompanyProfileController::class, 'index'])
-    ->name('company-profiles.index');
-
-Route::get('/company-profiles/{id}', [CompanyProfileController::class, 'show'])
-    ->name('company-profiles.show');
-
-// ==========================================
-// مسارات إضافة، تعديل، وحذف العملاء
-// ==========================================
-Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
-Route::put('/customers/{id}', [CustomerController::class, 'update'])->name('customers.update');
-Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->name('customers.destroy');
-
-// ==========================================
-// مسارات إضافة، تعديل، وحذف ملفات الشركات
-// ==========================================
-Route::post('/company-profiles', [CompanyProfileController::class, 'store'])->name('company-profiles.store');
-Route::put('/company-profiles/{id}', [CompanyProfileController::class, 'update'])->name('company-profiles.update');
-Route::delete('/company-profiles/{id}', [CompanyProfileController::class, 'destroy'])->name('company-profiles.destroy');
 
 /*
 |--------------------------------------------------------------------------
