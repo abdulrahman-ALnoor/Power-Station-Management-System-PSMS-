@@ -21,7 +21,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
             $table->foreignId('accountant_id')
                 ->constrained('users');
-
+            $table->foreignId('consumption_charge_id')->constrained()->cascadeOnDelete();
 
             $table->decimal('outstanding_before_payment', 12, 2);
             $table->decimal('paid_amount', 12, 2);

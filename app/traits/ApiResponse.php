@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Traits;
 
 trait ApiResponse
@@ -16,7 +17,7 @@ trait ApiResponse
         return response()->json([
             'success' => true,
             'message' => $message,
-            'data'    => $data,
+            'data' => $data,
         ], $status);
     }
 
@@ -27,14 +28,15 @@ trait ApiResponse
      * @param int $status
      * @param mixed $data
      * @return \Illuminate\Http\JsonResponse
-     */
-
+     **/
     protected function error(string $message, int $status = 400, $data = null)
     {
         return response()->json([
+            
             'success' => false,
             'message' => $message,
-            'data'    => $data,
+            'data'  => $data,
         ], $status);
     }
-}
+} 
+ 
