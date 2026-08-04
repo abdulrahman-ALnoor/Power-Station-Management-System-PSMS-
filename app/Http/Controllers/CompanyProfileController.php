@@ -2,112 +2,75 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CompanyProfileResource;
 use App\Models\CompanyProfile;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+
 class CompanyProfileController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * مسار الإحصائيات (company-profiles/stats)
      */
+    public function stats()
+    {
+        $company = CompanyProfile::first();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => [
+                'company_name'       => $company?->company_name,
+                'price_per_kwh'      => $company?->price_per_kwh,
+                'currency'           => $company?->currency,
+                'reading_cycle_days' => $company?->reading_cycle_days,
+            ]
+        ], 200);
+    }
+
     public function index()
     {
-        $companyProfiles = CompanyProfile::get();
-        
-        return response()->json([
-            'status' => 'success', 
-            'data'   => $companyProfiles
-        ], 200);
-    }
+        $company = CompanyProfile::first();
 
-    // عرض ملف شركة محدد برقم الـ ID بصيغة JSON
-    public function show(int $id)
-    {
-        // البحث عن ملف الشركة، وإرجاع 404 إذا لم يوجد
-        $companyProfile = CompanyProfile::findOrFail($id);
-        
-        return response()->json([
-            'status' => 'success', 
-            'data'   => $companyProfile
-        ], 200);
-    }
-
-    // إضافة ملف شركة جديد
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'company_name'       => 'required|string|max:255',
-            'logo'               => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
-            'address'            => 'nullable|string',
-            'whatsapp_number'    => 'nullable|string|max:20',
-            'support_number'     => 'nullable|string|max:20',
-            'currency'           => 'required|string|max:10',
-            'price_per_kwh'      => 'required|numeric|min:0',
-            'reading_cycle_days' => 'required|integer|min:1',
-        ]);
-
-        if ($request->hasFile('logo')) {
-            $validated['logo'] = $request->file('logo')->store('company_logos', 'public');
+        if (!$company) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'بيانات الشركة غير موجودة'
+            ], 404);
         }
-
-        $companyProfile = CompanyProfile::create($validated);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'تم إضافة بيانات الشركة بنجاح',
-            'data'   => $companyProfile
-        ], 201);
+            'data'   => new CompanyProfileResource($company)
+        ], 200);
     }
 
-    // تعديل بيانات شركة
-    public function update(Request $request, int $id)
+    public function update(Request $request)
     {
-        $companyProfile = CompanyProfile::findOrFail($id);
+        $company = CompanyProfile::first();
 
-        $validated = $request->validate([
-            'company_name'       => 'required|string|max:255',
-            'logo'               => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
-            'address'            => 'nullable|string',
-            'whatsapp_number'    => 'nullable|string|max:20',
-            'support_number'     => 'nullable|string|max:20',
-            'currency'           => 'required|string|max:10',
-            'price_per_kwh'      => 'required|numeric|min:0',
-            'reading_cycle_days' => 'required|integer|min:1',
-        ]);
-
-        if ($request->hasFile('logo')) {
-            // حذف الشعار القديم إن وجد
-            if ($companyProfile->logo) {
-                Storage::disk('public')->delete($companyProfile->logo);
-            }
-            $validated['logo'] = $request->file('logo')->store('company_logos', 'public');
+        if (!$company) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'بيانات الشركة غير موجودة'
+            ], 404);
         }
 
-        $companyProfile->update($validated);
+        $validated = $request->validate([
+            'company_name'       => 'sometimes|string|max:200',
+            'logo'               => 'nullable|string|max:255',
+            'address'            => 'nullable|string',
+            'whatsapp_number'    => 'nullable|string|max:30',
+            'support_number'     => 'nullable|string|max:30',
+            'currency'           => 'sometimes|string|max:20',
+            'price_per_kwh'      => 'sometimes|numeric|min:0',
+            'reading_cycle_days' => 'nullable|integer|min:1',
+        ]);
+
+        $company->update($validated);
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'تم تحديث بيانات الشركة بنجاح',
-            'data'   => $companyProfile
+            'data'    => new CompanyProfileResource($company)
         ], 200);
     }
-
-    // حذف ملف شركة
-    public function destroy(int $id)
-    {
-        $companyProfile = CompanyProfile::findOrFail($id);
-        
-        if ($companyProfile->logo) {
-            Storage::disk('public')->delete($companyProfile->logo);
-        }
-
-        $companyProfile->delete();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'تم حذف ملف الشركة بنجاح'
-        ], 200);
-    }
-
-
-    }
+}
