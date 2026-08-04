@@ -38,9 +38,9 @@ return new class extends Migration
         Schema::enableForeignKeyConstraints();
     }
 
-    /**
-     * Reverse the migrations.
-     */
+
+    //  Reverse the migrations.
+     
     public function down(): void
     {
         Schema::dropIfExists('invoices');

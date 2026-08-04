@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\MeterReadingController;
+use App\Http\Controllers\RoleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -15,3 +16,5 @@ Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
 
 Route::apiResource('/invoices' , InvoiceController::class);
 Route::apiResource('/meter-readings' , MeterReadingController::class);
+
+Route::apiResource('/roles' , RoleController::class);

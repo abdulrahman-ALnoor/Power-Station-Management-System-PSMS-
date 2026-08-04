@@ -1,5 +1,4 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\CompanyProfileController;
@@ -18,6 +17,8 @@ use App\Http\Controllers\UserController;
 | Web Routes
 |--------------------------------------------------------------------------
 */
+
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -82,10 +83,12 @@ Route::get('/company-profiles/{id}', [CompanyProfileController::class, 'show'])
 |--------------------------------------------------------------------------
 */
 
+
 Route::get('/users/role/{role}', [UserController::class, 'showByRole']);
 
 Route::resource('users', UserController::class)
     ->only(['index', 'show']);
+
 
 
 /*

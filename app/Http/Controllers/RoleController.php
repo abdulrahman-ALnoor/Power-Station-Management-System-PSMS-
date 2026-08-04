@@ -3,14 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Role;
+use App\Http\Requests\Role\StoreRoleRequest;
+use App\Http\Requests\Role\UpdateRoleRequest;
+use App\Http\Resources\RoleResource;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class RoleController extends Controller
 {
-    //
+    use ApiResponse;
 
     /**
-     * Display all roles.
+     * Display all roles and the number of users associated with each role.
      */
     public function index()
     {
@@ -18,7 +22,10 @@ class RoleController extends Controller
             ->latest()
             ->get();
 
-        return response()->json($roles);
+        return $this->successResponse(
+            RoleResource::collection($roles),
+            'Roles retrieved successfully.'
+        );
     }
 
     /**
