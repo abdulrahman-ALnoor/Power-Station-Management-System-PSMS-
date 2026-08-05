@@ -2,28 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateCompanyProfileRequest;
 use App\Http\Resources\CompanyProfileResource;
 use App\Models\CompanyProfile;
-use Illuminate\Http\Request;
+use App\Traits\ApiResponse;
 
 class CompanyProfileController extends Controller
 {
-    /**
-     * مسار الإحصائيات (company-profiles/stats)
-     */
+    use ApiResponse;
+
     public function stats()
     {
         $company = CompanyProfile::first();
 
-        return response()->json([
-            'status' => 'success',
-            'data'   => [
-                'company_name'       => $company?->company_name,
-                'price_per_kwh'      => $company?->price_per_kwh,
-                'currency'           => $company?->currency,
-                'reading_cycle_days' => $company?->reading_cycle_days,
-            ]
-        ], 200);
+        $data = [
+            'company_name'       => $company?->company_name,
+            'price_per_kwh'      => $company?->price_per_kwh,
+            'currency'           => $company?->currency,
+            'reading_cycle_days' => $company?->reading_cycle_days,
+        ];
+
+        return $this->success('تم جلب إحصائيات الشركة بنجاح', $data, 200);
     }
 
     public function index()
@@ -31,46 +30,22 @@ class CompanyProfileController extends Controller
         $company = CompanyProfile::first();
 
         if (!$company) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'بيانات الشركة غير موجودة'
-            ], 404);
+            return response()->json(['message' => 'بيانات الشركة غير موجودة'], 404);
         }
 
-        return response()->json([
-            'status' => 'success',
-            'data'   => new CompanyProfileResource($company)
-        ], 200);
+        return $this->success('تم جلب بيانات الشركة بنجاح', new CompanyProfileResource($company), 200);
     }
 
-    public function update(Request $request)
+    public function update(UpdateCompanyProfileRequest $request)
     {
         $company = CompanyProfile::first();
 
         if (!$company) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'بيانات الشركة غير موجودة'
-            ], 404);
+            return response()->json(['message' => 'بيانات الشركة غير موجودة'], 404);
         }
 
-        $validated = $request->validate([
-            'company_name'       => 'sometimes|string|max:200',
-            'logo'               => 'nullable|string|max:255',
-            'address'            => 'nullable|string',
-            'whatsapp_number'    => 'nullable|string|max:30',
-            'support_number'     => 'nullable|string|max:30',
-            'currency'           => 'sometimes|string|max:20',
-            'price_per_kwh'      => 'sometimes|numeric|min:0',
-            'reading_cycle_days' => 'nullable|integer|min:1',
-        ]);
+        $company->update($request->validated());
 
-        $company->update($validated);
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'تم تحديث بيانات الشركة بنجاح',
-            'data'    => new CompanyProfileResource($company)
-        ], 200);
+        return $this->success('تم تحديث بيانات الشركة بنجاح', new CompanyProfileResource($company), 200);
     }
 }
