@@ -14,6 +14,7 @@ use App\Traits\ApiResponse;
 use App\Http\Resources\InvoiceResource;
 
 
+
 class InvoiceController extends Controller
 {
     use ApiResponse;
@@ -67,7 +68,7 @@ class InvoiceController extends Controller
         ->latest('created_at')
         ->paginate($request->get('per_page', 10));
 
-        return $this->success('تم جلب الفواتير بنجاح.', InvoiceResource::collection($invoices));
+        return $this->successResponse(InvoiceResource::collection($invoices), 'تم جلب الفواتير بنجاح.');
     }
 
     // this function is used to get statistics about invoices
@@ -95,14 +96,14 @@ class InvoiceController extends Controller
                                 ->whereYear('created_at', now()->year)
                                 ->sum('paid_amount');
 
-    return $this->success('تم جلب الإحصائيات بنجاح.', [
+    return $this->successResponse([
         'total_revenue'          => $totalRevenue,
         'total_invoices'         => $totalInvoices,
         'paid_invoices_count'    => $paidInvoicesCount,
         'partially_paid_count'   => $partiallyPaidInvoicesCount,
         'overdue_amount'         => $overdueAmount,
         'this_month_collect'     => $thisMonthCollect,
-    ]);
+    ], 'تم جلب إحصائيات الفواتير بنجاح.');
     
 }
 
@@ -123,7 +124,7 @@ class InvoiceController extends Controller
         );
         // 2. التحقق من أن المبلغ المدفوع لا يتجاوز المتبقي
         if ($request->paid_amount > $charge->remaining_amount) {
-            return $this->error(
+            return $this->errorResponse(
                 'المبلغ المدفوع أكبر من المبلغ المتبقي.',
                 422
             );
@@ -171,8 +172,7 @@ class InvoiceController extends Controller
 
 
             // 6. إعادة البيانات للـ Frontend
-            return $this->success(
-                'تم إنشاء الفاتورة بنجاح.',
+            return $this->successResponse(
                 new InvoiceResource(
                     $invoice->load([
                         'customer',
@@ -180,10 +180,12 @@ class InvoiceController extends Controller
                         'consumptionCharge'
                     ])
                 ),
+                'تم إنشاء الفاتورة بنجاح.',
+                
                 201
             );
         } catch (\Exception $e) {
-            return $this->error(
+            return $this->errorResponse(
                 'حدث خطأ أثناء إنشاء الفاتورة.',
                 500
             );
@@ -207,9 +209,9 @@ class InvoiceController extends Controller
             'consumptionCharge',
         ]);
 
-        return $this->success(
-            'تم جلب الفاتورة بنجاح.',
-            new InvoiceResource($invoice)
+        return $this->successResponse(
+            new InvoiceResource($invoice),
+            'تم جلب الفاتورة بنجاح.'
         );
     }
 
@@ -228,9 +230,9 @@ class InvoiceController extends Controller
             'consumptionCharge',
         ]);
 
-        return $this->success(
-            'تم تحديث الفاتورة بنجاح.',
-            new InvoiceResource($invoice->fresh())
+        return $this->successResponse(
+            new InvoiceResource($invoice->fresh()),
+            'تم تحديث الفاتورة بنجاح.'
         );
     }
 
@@ -241,7 +243,8 @@ class InvoiceController extends Controller
     {
         $invoice->delete();
 
-        return $this->success(
+        return $this->successResponse(
+            null,
             'تم حذف الفاتورة بنجاح.'
         );
     }
