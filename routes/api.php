@@ -20,7 +20,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
 
     Route::apiResource('/invoices', InvoiceController::class);
-    Route::apiResource('/invoices',InvoiceController::class);
+    Route::apiResource('/meter-readings', MeterReadingController::class);
 });
 
 
