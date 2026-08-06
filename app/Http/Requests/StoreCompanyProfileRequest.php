@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class StoreCompanyProfileRequest extends FormRequest
 {
@@ -23,5 +25,17 @@ class StoreCompanyProfileRequest extends FormRequest
             'price_per_kwh'      => 'required|numeric|min:0',
             'reading_cycle_days' => 'nullable|integer|min:1',
         ];
+    }
+
+    /**
+     * تخصيص استجابة أخطاء الـ Validation لتكون JSON موحد
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'message' => 'خطأ في البيانات المدخلة',
+            'errors'  => $validator->errors()
+        ], 422));
     }
 }
