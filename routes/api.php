@@ -14,7 +14,6 @@ use App\Http\Controllers\Api\ServiceRequestController;
 use App\Http\Controllers\Api\UserController;
 
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -46,17 +45,6 @@ Route::get('/users/role/{role}', [UserController::class, 'showByRole']);
 
 Route::resource('users', UserController::class)
     ->only(['index', 'show']);
-
-
-
-
-
-    
-
-
-
-
-
 
 
 Route::apiResource('meters', MeterController::class);
