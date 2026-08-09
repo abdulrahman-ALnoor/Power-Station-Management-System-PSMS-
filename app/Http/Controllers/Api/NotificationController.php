@@ -107,9 +107,6 @@ class NotificationController extends Controller
     }
 
 
-
-
-
     // Get notifications by customer
     // 
     public function showByCustomer($customerId)

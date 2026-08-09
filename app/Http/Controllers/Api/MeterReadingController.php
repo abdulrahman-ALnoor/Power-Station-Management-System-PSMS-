@@ -63,10 +63,11 @@ class MeterReadingController extends Controller
                 'creator',
                 'consumptionCharge',
             ])
-            ->latest('reading_date')
+            ->orderByDesc('reading_date')
+            ->orderByDesc('id')
             ->paginate($request->get('per_page', 10));
 
-        return $this->success('تم جلب قراءات العدادات بنجاح.',MeterReadingResource::collection($readings));
+        return $this->successResponse(MeterReadingResource::collection($readings), 'تم جلب قراءات العدادات بنجاح.');
         
     }
     // this function is used to get the statistics of meter readings
@@ -117,18 +118,17 @@ class MeterReadingController extends Controller
         )
         ->sum('reading_cost');
 
-    return $this->success(
-        'تم جلب إحصائيات القراءات بنجاح.',
-        [
-            'total_readings' => $totalReadings,
-            'total_consumption' => $totalConsumption,
-            'expected_revenue' => $expectedRevenue,
+    return $this->successResponse([
+        'total_readings' => $totalReadings,
+        'total_consumption' => $totalConsumption,
+        'expected_revenue' => $expectedRevenue,
             'approved_readings' => $approvedReadings,
             'pending_readings' => $pendingReadings,
             'rejected_readings' => $rejectedReadings,
             'this_month_consumption' => $thisMonthConsumption,
             'this_month_revenue' => $thisMonthRevenue,
-        ]
+        ],
+        'تم جلب إحصائيات قراءات العدادات بنجاح.'
     );
 }
 
@@ -197,19 +197,20 @@ class MeterReadingController extends Controller
                 
             });
             
-            return $this->success(
-            'تم تسجيل قراءة العداد بنجاح.',
-            new MeterReadingResource(
+            return $this->successResponse(
+                new MeterReadingResource(
                 $reading->load([
                     'meter.customer',
                     'creator',
                     'consumptionCharge',
                 ])
             ),
+            'تم تسجيل قراءة العداد بنجاح.',
+            
             201
         );
         }catch(\Exception $e){
-            return $this->error('حدث خطأ أثناء حفظ قراءة العداد: ' . $e->getMessage());
+            return $this->errorResponse('حدث خطأ أثناء حفظ قراءة العداد: ' . $e->getMessage());
         }
     }
 
@@ -221,7 +222,7 @@ class MeterReadingController extends Controller
     public function show(MeterReading $meterReading)
     {
         $meterReading->load([ 'meter.customer', 'creator', 'consumptionCharge', ]);
-        return $this->success( 'تم جلب قراءة العداد بنجاح.', new MeterReadingResource($meterReading) );
+        return $this->successResponse(new MeterReadingResource($meterReading), 'تم جلب قراءة العداد بنجاح.');
     }
 
     /**
@@ -246,7 +247,7 @@ class MeterReadingController extends Controller
             ->latest('id')
             ->first();
             if ($meterReading->id !== $lastReading->id) {
-                return $this->error(
+                return $this->errorResponse(
                     'لا يمكن تعديل هذه القراءة لأنها ليست آخر قراءة لهذا العداد.',
                     422
                 );
@@ -256,7 +257,7 @@ class MeterReadingController extends Controller
                 ->exists();
 
             if ($hasInvoice) {
-                return $this->error(
+                return $this->errorResponse(
                     'لا يمكن تعديل القراءة بعد تسجيل عملية دفع لها.',
                     422
                 );
@@ -294,7 +295,7 @@ class MeterReadingController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return $this->error('حدث خطأ أثناء تحديث قراءة العداد: ' . $e->getMessage());
+            return $this->errorResponse('حدث خطأ أثناء تحديث قراءة العداد: ' . $e->getMessage());
         }
     }
 
@@ -307,9 +308,9 @@ class MeterReadingController extends Controller
     {
         try {
             $meterReading->delete();
-            return $this->success('تم حذف قراءة العداد بنجاح.');
+            return $this->successResponse(null, 'تم حذف قراءة العداد بنجاح.');
         } catch (\Exception $e) {
-            return $this->error('حدث خطأ أثناء حذف قراءة العداد: ' . $e->getMessage());
+            return $this->errorResponse('حدث خطأ أثناء حذف قراءة العداد: ' . $e->getMessage());
         }
     }
 }

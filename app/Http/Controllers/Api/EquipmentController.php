@@ -7,7 +7,7 @@ use App\Models\Equipment;
 use Illuminate\Http\Request;
 use App\Http\Requests\Equipment\StoreEquipmentRequest;
 use App\Http\Requests\Equipment\UpdateEquipmentRequest;
-use App\Http\Resources\Equipmen\EquipmentResource;
+use App\Http\Resources\Equipment\EquipmentResource;
 use App\Traits\ApiResponse;
 
 class EquipmentController extends Controller

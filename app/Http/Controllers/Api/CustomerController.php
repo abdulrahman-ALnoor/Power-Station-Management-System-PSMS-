@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
 use App\Models\Customer;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+
 
 class CustomerController extends Controller
 {
@@ -30,7 +32,6 @@ class CustomerController extends Controller
             'data'   => $customer
         ], 200);
     }
-
 
 
 }
