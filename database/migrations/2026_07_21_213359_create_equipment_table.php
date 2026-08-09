@@ -29,7 +29,7 @@ return new class extends Migration
                 'maintenance',
                 'damaged',
                 'lost',
-            ])->nullable()->index();
+            ])->nullable()->index()->default('available');
             $table->text('notes')->nullable();
             $table->foreignId('created_by')
                 ->nullable()

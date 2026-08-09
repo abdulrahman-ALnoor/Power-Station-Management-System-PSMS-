@@ -68,7 +68,10 @@ class InvoiceController extends Controller
         ->latest('created_at')
         ->paginate($request->get('per_page', 10));
 
-        return $this->successResponse(InvoiceResource::collection($invoices), 'تم جلب الفواتير بنجاح.');
+        return $this->success(
+            'تم جلب الفواتير بنجاح.',
+            InvoiceResource::collection($invoices)
+            );
     }
 
     // this function is used to get statistics about invoices
@@ -96,14 +99,16 @@ class InvoiceController extends Controller
                                 ->whereYear('created_at', now()->year)
                                 ->sum('paid_amount');
 
-    return $this->successResponse([
+    return $this->success(
+            'تم جلب إحصائيات الفواتير بنجاح.'   , 
+    [
         'total_revenue'          => $totalRevenue,
         'total_invoices'         => $totalInvoices,
         'paid_invoices_count'    => $paidInvoicesCount,
         'partially_paid_count'   => $partiallyPaidInvoicesCount,
         'overdue_amount'         => $overdueAmount,
         'this_month_collect'     => $thisMonthCollect,
-    ], 'تم جلب إحصائيات الفواتير بنجاح.');
+    ] );
     
 }
 
@@ -124,7 +129,7 @@ class InvoiceController extends Controller
         );
         // 2. التحقق من أن المبلغ المدفوع لا يتجاوز المتبقي
         if ($request->paid_amount > $charge->remaining_amount) {
-            return $this->errorResponse(
+            return $this->error(
                 'المبلغ المدفوع أكبر من المبلغ المتبقي.',
                 422
             );
@@ -172,7 +177,8 @@ class InvoiceController extends Controller
 
 
             // 6. إعادة البيانات للـ Frontend
-            return $this->successResponse(
+            return $this->success(
+                'تم إنشاء الفاتورة بنجاح.',
                 new InvoiceResource(
                     $invoice->load([
                         'customer',
@@ -180,12 +186,11 @@ class InvoiceController extends Controller
                         'consumptionCharge'
                     ])
                 ),
-                'تم إنشاء الفاتورة بنجاح.',
                 
                 201
             );
         } catch (\Exception $e) {
-            return $this->errorResponse(
+            return $this->error(
                 'حدث خطأ أثناء إنشاء الفاتورة.',
                 500
             );
@@ -209,9 +214,9 @@ class InvoiceController extends Controller
             'consumptionCharge',
         ]);
 
-        return $this->successResponse(
-            new InvoiceResource($invoice),
-            'تم جلب الفاتورة بنجاح.'
+        return $this->success(
+            'تم جلب الفاتورة بنجاح.',
+            new InvoiceResource($invoice)
         );
     }
 
@@ -230,9 +235,9 @@ class InvoiceController extends Controller
             'consumptionCharge',
         ]);
 
-        return $this->successResponse(
-            new InvoiceResource($invoice->fresh()),
-            'تم تحديث الفاتورة بنجاح.'
+        return $this->success(
+            'تم تحديث الفاتورة بنجاح.',
+            new InvoiceResource($invoice->fresh())
         );
     }
 
@@ -243,9 +248,9 @@ class InvoiceController extends Controller
     {
         $invoice->delete();
 
-        return $this->successResponse(
-            null,
-            'تم حذف الفاتورة بنجاح.'
+        return $this->success(
+            'تم حذف الفاتورة بنجاح.',
+            null
         );
     }
 }
