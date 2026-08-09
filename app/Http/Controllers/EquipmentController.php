@@ -4,25 +4,64 @@ namespace App\Http\Controllers;
 
 use App\Models\Equipment;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponse;
 
 class EquipmentController extends Controller
 {
-    //
+    use ApiResponse;
 
-    // Get all equipment
-    public function index()
+    // --------------------------------------------------------
+    // الدوال الجديدة المطابقة للواجهة 5 (إدارة المعدات)
+    // --------------------------------------------------------
+    public function stats()
     {
-        $equipment = Equipment::with([
-            'user',
-            'creator',
-        ])
-            ->latest()
-            ->paginate(10);
+        $stats = [
+            'total_equipment'     => Equipment::count(),
+            'assigned_equipment'  => Equipment::whereNotNull('user_id')->count(),
+            'available_equipment' => Equipment::whereNull('user_id')->where('status', 'available')->count(),
+            'maintenance_needed'  => Equipment::where('status', 'maintenance')->count(),
+            'damaged_equipment'   => Equipment::where('status', 'damaged')->count(),
+        ];
 
-        return response()->json($equipment);
+        return $this->success('تم جلب إحصائيات المعدات بنجاح', $stats, 200);
     }
 
-    // Get equipment by ID
+    public function index(Request $request)
+    {
+        $query = Equipment::with(['user', 'creator']);
+
+        if ($request->filled('status')) {
+            if ($request->status === 'assigned') {
+                $query->whereNotNull('user_id');
+            } else {
+                $query->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            
+            $query->where(function($q) use ($search) {
+                $q->where('equipment_name', 'like', "%{$search}%")
+                  ->orWhere('serial_number', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($u) use ($search) {
+                      $u->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $equipments = $query->latest()->paginate(10);
+
+        return $this->success('تم جلب قائمة المعدات بنجاح', $equipments, 200);
+    }
+
+    // --------------------------------------------------------
+    // دوالك السابقة كما هي
+    // --------------------------------------------------------
     public function show(Equipment $equipment)
     {
         $equipment->load([
@@ -30,11 +69,10 @@ class EquipmentController extends Controller
             'creator',
         ]);
 
-        return response()->json($equipment);
+        return $this->success('تم جلب بيانات المعدة بنجاح', $equipment, 200);
     }
 
-    // Get all equipment assigned to a specific user
-    public function showByUser($userId)
+   public function showByUser(int $userId)
     {
         $equipment = Equipment::with([
             'user',
@@ -44,6 +82,6 @@ class EquipmentController extends Controller
             ->latest()
             ->get();
 
-        return response()->json($equipment);
+        return $this->success('تم جلب معدات الموظف بنجاح', $equipment, 200);
     }
 }

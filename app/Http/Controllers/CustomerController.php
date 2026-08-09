@@ -6,13 +6,19 @@ use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
+use App\Models\MeterReading;
+use App\Models\ConsumptionCharge;
+use App\Models\Invoice;
+use App\Models\ServiceRequest;
 use App\Traits\ApiResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CustomerController extends Controller
 {
     use ApiResponse;
 
+    // دوالك السابقة كما هي
     public function stats()
     {
         $data = [
@@ -63,5 +69,61 @@ class CustomerController extends Controller
         $customer->delete();
 
         return $this->success('تم حذف العميل بنجاح', null, 200);
+    }
+
+    // --------------------------------------------------------
+    // الدالة الجديدة المطابقة للواجهة 4 (نافذة تفاصيل العميل)
+    // --------------------------------------------------------
+    public function customerDetails(Request $request, int $id)
+    {
+        $customer = Customer::findOrFail($id);
+
+        $metersQuery = $customer->meters();
+
+        if ($request->filled('meter_status')) {
+            $metersQuery->where('status', $request->meter_status);
+        }
+
+        if ($request->filled('search')) {
+            $metersQuery->where('meter_number', 'like', '%' . $request->search . '%');
+        }
+
+        $meters = $metersQuery->get();
+
+        $meterIds = $customer->meters()->pluck('id');
+        
+        $totalConsumption = $meterIds->isNotEmpty() 
+            ? MeterReading::whereIn('meter_id', $meterIds)->sum('consumption') 
+            : 0;
+
+        $outstandingBalance = ConsumptionCharge::where('customer_id', $customer->id)
+            ->whereIn('status', ['pending', 'partially_paid'])
+            ->sum('remaining_amount');
+
+        $lastPayment = Invoice::where('customer_id', $customer->id)
+            ->latest()
+            ->first();
+
+        $latestServiceRequests = ServiceRequest::where('customer_id', $customer->id)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $data = [
+            'customer_info'     => $customer,
+            'statistics'        => [
+                'meters_count'       => $customer->meters()->count(),
+                'total_consumption'  => $totalConsumption,
+                'outstanding_balance'=> $outstandingBalance,
+            ],
+            'meters'            => $meters,
+            'financial_summary' => [
+                'last_payment_amount' => $lastPayment?->paid_amount ?? 0,
+                'last_payment_date'   => $lastPayment?->created_at?->format('Y-m-d'),
+            ],
+            'latest_service_requests' => $latestServiceRequests,
+        ];
+
+        return $this->success('تم جلب تفاصيل وإحصائيات العميل بنجاح', $data, 200);
     }
 }
