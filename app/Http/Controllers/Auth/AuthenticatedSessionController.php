@@ -18,23 +18,21 @@ class AuthenticatedSessionController extends Controller
      */
     // tokens authentication
     public function store(LoginRequest $request): JsonResponse
-    {
+{
+    $request->authenticate();
 
-        $request->authenticate();
-        $user = $request->user();
+    $user = $request->user();
 
-        
+    $token = $user->createToken('auth-token')->plainTextToken;
 
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return $this->successResponse([
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ],
-            'message' => 'Logged in successfully',
-        ]);
-    }
+    return $this->success(
+        'Logged in successfully',
+        [
+            'user' => $user,
+            'token' => $token,
+        ]
+    );
+}
 
     /**
      * Destroy an authenticated session.
@@ -43,7 +41,7 @@ class AuthenticatedSessionController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        
+
 
         return $this->successResponse([
             'message' => 'Logged out successfully',

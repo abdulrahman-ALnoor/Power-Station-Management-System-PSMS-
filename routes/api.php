@@ -18,25 +18,25 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
-    Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
+   /// Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
 
     Route::apiResource('/invoices', InvoiceController::class);
     Route::apiResource('/meter-readings', MeterReadingController::class);
+    Route::get('/service-requests/my-latest', [ServiceRequestController::class, 'myLatestRequests']);
+    Route::get('/equipment/my-stats', [EquipmentController::class, 'myStats']);
+    Route::apiResource('equipment' , EquipmentController::class);
+
+    Route::get('/service-requests/my-performance', [ServiceRequestController::class, 'myMonthlyPerformance']);
+    Route::get('/service-requests/my-dashboard', [ServiceRequestController::class, 'myDashboardStats']);
+    Route::get('/service-requests/my-status', [ServiceRequestController::class, 'myRequestsStatus']);
+    Route::apiResource('service-requests' ,ServiceRequestController::class);
+
+
 });
 
 
 
-
-
-
-
-
-
-
-
-
 /*
-|--------------------------------------------------------------------------
 | User Routes
 |--------------------------------------------------------------------------
 */
@@ -53,7 +53,7 @@ Route::apiResource('meters', MeterController::class);
 Route::apiResource( 'consumption-charges', ConsumptionChargeController::class);
 
 Route::get('/invoices/stats', [InvoiceController::class, 'stats']);
-Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
+//Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
 
 
 
@@ -61,15 +61,12 @@ Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
 Route::apiResource('roles' , RoleController::class);
 
 Route::apiResource('notifications' , NotificationController::class);
-Route::get('/showByCustomer/{customerId}', [NotificationController::class, 'showByCustomer']);
-
-
-Route::apiResource('equipment' , EquipmentController::class);
-Route::apiResource('service-requests' ,ServiceRequestController::class);
+ Route::get('/showByCustomer/{customerId}', [NotificationController::class, 'showByCustomer']);
 
 
 
 
 
 require __DIR__.'/auth.php';
+
 
