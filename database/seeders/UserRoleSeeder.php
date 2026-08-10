@@ -19,9 +19,8 @@ class UserRoleSeeder extends Seeder
         $roles = Role::all();
 
         foreach ($users as $user) {
-            $user->roles()->attach(
-                $roles->random()->id
-            );
+            $user->roles()->syncWithoutDetaching(
+            $roles->random()->id);
         }
     }
 }

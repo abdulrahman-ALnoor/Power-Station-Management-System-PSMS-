@@ -40,14 +40,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
 | User Routes
 |--------------------------------------------------------------------------
 */
+ Route::get('/users/stats', [UserController::class, 'stats']);
 
 Route::get('/users/role/{role}', [UserController::class, 'showByRole']);
 
 Route::resource('users', UserController::class)
     ->only(['index', 'show']);
 
-
+Route::get('meters/stats', [MeterController::class, 'stats']);
 Route::apiResource('meters', MeterController::class);
+
 Route::apiResource( 'consumption-charges', ConsumptionChargeController::class);
 
 Route::get('/invoices/stats', [InvoiceController::class, 'stats']);

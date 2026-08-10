@@ -17,7 +17,7 @@ class MeterReadingFactory extends Factory
         $cost = $consumption * $price;
 
         return [
-            'created_by' => User::factory(),
+            'created_by' => \App\Models\User::inRandomOrder()->first()->id,
 
             'meter_id' => Meter::factory(),
 

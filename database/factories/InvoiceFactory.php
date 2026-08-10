@@ -19,7 +19,7 @@ class InvoiceFactory extends Factory
 
             'customer_id' => Customer::factory(),
 
-            'accountant_id' => User::factory(),
+            'accountant_id' => \App\Models\User::inRandomOrder()->first()->id,
 
             'consumption_charge_id' => ConsumptionCharge::factory(),
 
