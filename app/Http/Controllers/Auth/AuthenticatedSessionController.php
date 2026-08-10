@@ -27,13 +27,13 @@ class AuthenticatedSessionController extends Controller
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
-        return $this->successResponse([
-            'data' => [
+        return $this->success(
+            'Logged in successfully',
+            [
                 'user' => $user,
                 'token' => $token,
-            ],
-            'message' => 'Logged in successfully',
-        ]);
+            ]
+        );
     }
 
     /**
@@ -45,8 +45,6 @@ class AuthenticatedSessionController extends Controller
 
         
 
-        return $this->successResponse([
-            'message' => 'Logged out successfully',
-        ]);
+        return $this->success('Logged out successfully');
     }
 }

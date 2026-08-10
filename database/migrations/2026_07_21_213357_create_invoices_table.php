@@ -31,6 +31,7 @@ return new class extends Migration
                 'partially_paid',
             ])->nullable();
             $table->text('payment_notes')->nullable();
+            $table->string('pdf_path')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

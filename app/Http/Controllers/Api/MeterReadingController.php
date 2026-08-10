@@ -15,7 +15,32 @@ use App\Http\Resources\MeterReadingResource;
 use App\Http\Requests\StoreMeterReadingRequest;
 use App\Http\Requests\UpdateMeterReadingRequest;
 
+// protected function success(string $message, $data = null, int $status = 200)
+//     {
+//         return response()->json([
+//             'success' => true,
+//             'message' => $message,
+//             'data' => $data,
+//         ], $status);
+//     }
 
+//     /**
+//      * Return an error JSON response.
+//      *
+//      * @param string $message
+//      * @param int $status
+//      * @param mixed $data
+//      * @return \Illuminate\Http\JsonResponse
+//      **/
+//     protected function error(string $message, int $status = 400, $data = null)
+//     {
+//         return response()->json([
+
+//             'success' => false,
+//             'message' => $message,
+//             'data'  => $data,
+//         ], $status);
+//     }
 class MeterReadingController extends Controller
 {
     use ApiResponse;
@@ -67,7 +92,11 @@ class MeterReadingController extends Controller
             ->orderByDesc('id')
             ->paginate($request->get('per_page', 10));
 
-        return $this->successResponse(MeterReadingResource::collection($readings), 'تم جلب قراءات العدادات بنجاح.');
+        return $this->success(
+        
+            'تم جلب قراءات العدادات بنجاح.',
+            MeterReadingResource::collection($readings)
+        );
         
     }
     // this function is used to get the statistics of meter readings
@@ -118,17 +147,18 @@ class MeterReadingController extends Controller
         )
         ->sum('reading_cost');
 
-    return $this->successResponse([
-        'total_readings' => $totalReadings,
-        'total_consumption' => $totalConsumption,
-        'expected_revenue' => $expectedRevenue,
+    return $this->success(
+        'تم جلب إحصائيات قراءات العدادات بنجاح.',
+        [
+            'total_readings' => $totalReadings,
+            'total_consumption' => $totalConsumption,
+            'expected_revenue' => $expectedRevenue,
             'approved_readings' => $approvedReadings,
             'pending_readings' => $pendingReadings,
             'rejected_readings' => $rejectedReadings,
             'this_month_consumption' => $thisMonthConsumption,
             'this_month_revenue' => $thisMonthRevenue,
-        ],
-        'تم جلب إحصائيات قراءات العدادات بنجاح.'
+        ]
     );
 }
 
@@ -197,7 +227,8 @@ class MeterReadingController extends Controller
                 
             });
             
-            return $this->successResponse(
+            return $this->success(
+                'تم تسجيل قراءة العداد بنجاح.',
                 new MeterReadingResource(
                 $reading->load([
                     'meter.customer',
@@ -205,12 +236,12 @@ class MeterReadingController extends Controller
                     'consumptionCharge',
                 ])
             ),
-            'تم تسجيل قراءة العداد بنجاح.',
+            
             
             201
         );
         }catch(\Exception $e){
-            return $this->errorResponse('حدث خطأ أثناء حفظ قراءة العداد: ' . $e->getMessage());
+            return $this->error('حدث خطأ أثناء حفظ قراءة العداد: ' . $e->getMessage());
         }
     }
 
@@ -222,7 +253,7 @@ class MeterReadingController extends Controller
     public function show(MeterReading $meterReading)
     {
         $meterReading->load([ 'meter.customer', 'creator', 'consumptionCharge', ]);
-        return $this->successResponse(new MeterReadingResource($meterReading), 'تم جلب قراءة العداد بنجاح.');
+        return $this->success('تم جلب قراءة العداد بنجاح.',new MeterReadingResource($meterReading) );
     }
 
     /**
@@ -247,7 +278,7 @@ class MeterReadingController extends Controller
             ->latest('id')
             ->first();
             if ($meterReading->id !== $lastReading->id) {
-                return $this->errorResponse(
+                return $this->error(
                     'لا يمكن تعديل هذه القراءة لأنها ليست آخر قراءة لهذا العداد.',
                     422
                 );
@@ -257,7 +288,7 @@ class MeterReadingController extends Controller
                 ->exists();
 
             if ($hasInvoice) {
-                return $this->errorResponse(
+                return $this->error(
                     'لا يمكن تعديل القراءة بعد تسجيل عملية دفع لها.',
                     422
                 );
@@ -295,7 +326,7 @@ class MeterReadingController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return $this->errorResponse('حدث خطأ أثناء تحديث قراءة العداد: ' . $e->getMessage());
+            return $this->error('حدث خطأ أثناء تحديث قراءة العداد: ' . $e->getMessage());
         }
     }
 
@@ -308,9 +339,9 @@ class MeterReadingController extends Controller
     {
         try {
             $meterReading->delete();
-            return $this->successResponse(null, 'تم حذف قراءة العداد بنجاح.');
+            return $this->success('تم حذف قراءة العداد بنجاح.');
         } catch (\Exception $e) {
-            return $this->errorResponse('حدث خطأ أثناء حذف قراءة العداد: ' . $e->getMessage());
+            return $this->error('حدث خطأ أثناء حذف قراءة العداد: ' . $e->getMessage());
         }
     }
 }

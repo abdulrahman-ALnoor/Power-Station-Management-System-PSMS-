@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Traits\ApiResponse;
 use App\Http\Resources\InvoiceResource;
 
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 
 class InvoiceController extends Controller
@@ -253,4 +255,59 @@ class InvoiceController extends Controller
             null
         );
     }
+    public function exportPdf(Invoice $invoice)
+    {
+        $invoice->load([
+            'customer',
+            'accountant',
+            'consumptionCharge.meter',
+            'consumptionCharge.meterReading',
+        ]);
+
+        $pdf = Pdf::loadView(
+            'invoices.pdf',
+            compact('invoice')
+        );
+
+        $fileName = $invoice->invoice_number . '.pdf';
+
+        $path = 'invoices/' . $fileName;
+
+        Storage::disk('public')->put(
+            $path,
+            $pdf->output()
+        );
+
+        $invoice->update([
+            'pdf_path' => $path,
+        ]);
+
+        return $this->success(
+            'تم تصدير الفاتورة إلى PDF بنجاح.',
+            [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'pdf_path' => $path,
+                'pdf_url' => Storage::disk('public')->url($path),
+            ]
+            
+        );
+    }
+    
+    public function customerInvoices($customerId)
+        {
+            $invoices = Invoice::with([
+                'customer',
+                'accountant',
+                'consumptionCharge',
+            ])
+            ->where('customer_id', $customerId)
+            ->latest('created_at')
+            ->paginate(10);
+
+            return $this->success(
+                'تم جلب فواتير العميل بنجاح.',
+                InvoiceResource::collection($invoices)
+            );
+        }
 }

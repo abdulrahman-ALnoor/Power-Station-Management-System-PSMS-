@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
-    Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
+    Route::get('/invoices/stats', [MeterReadingController::class, 'stats']);
+    Route::get('/customers/{customerId}/invoices',[InvoiceController::class, 'customerInvoices']);
+    Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'exportPdf']);
 
     Route::apiResource('/invoices', InvoiceController::class);
     Route::apiResource('/meter-readings', MeterReadingController::class);
