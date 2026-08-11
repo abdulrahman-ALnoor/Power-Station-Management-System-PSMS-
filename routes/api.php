@@ -18,10 +18,18 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
+    
    /// Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
+    Route::get('/invoices/monthly-revenue', [InvoiceController::class, 'monthlyRevenue']);
+
+    Route::get('/invoices/latest-payments', [InvoiceController::class, 'latestPayments']);
+    Route::get('/invoices/export-excel',[InvoiceController::class, 'exportExcel']);
+    Route::get('/equipments/stats', [EquipmentController::class, 'stats']);
 
     Route::apiResource('/invoices', InvoiceController::class);
     Route::apiResource('/meter-readings', MeterReadingController::class);
+    
+
     Route::get('/service-requests/my-latest', [ServiceRequestController::class, 'myLatestRequests']);
     Route::get('/equipment/my-stats', [EquipmentController::class, 'myStats']);
     Route::apiResource('equipment' , EquipmentController::class);
