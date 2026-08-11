@@ -1,9 +1,7 @@
 <?php
 
-
 use App\Http\Controllers\Api\ConsumptionChargeController;
 use App\Http\Controllers\Api\MeterController;
-
 use App\Http\Controllers\Api\CompanyProfileController;
 use App\Http\Controllers\Api\EquipmentController;
 use App\Http\Controllers\Api\InvoiceController;
@@ -12,8 +10,6 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ServiceRequestController;
 use App\Http\Controllers\Api\UserController;
-
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\AuthController;
@@ -34,13 +30,32 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // ... سيتم إضافة مسارات لوحة التحكم وإدارة القراءات والمعدات هنا لاحقاً ...
+    // ==========================================
+    // 1. مسارات الواجهة الأولى (لوحة القارئ الرئيسية)
+    // ==========================================
+    Route::get('/reader/dashboard/stats', [MeterReadingController::class, 'readerDashboardStats']);
+    Route::get('/reader/dashboard/progress', [MeterReadingController::class, 'readerReadingsProgress']);
+    Route::get('/reader/dashboard/consumption', [MeterReadingController::class, 'readerConsumptionStats']);
+    Route::get('/reader/dashboard/latest-readings', [MeterReadingController::class, 'readerLatestReadings']);
+
+    // ==========================================
+    // 2. مسارات الواجهة الثانية (قراءات القارئ والفلترة)
+    // ==========================================
+    Route::get('/reader/readings', [MeterReadingController::class, 'readerIndex']);
+    // دالة إحصائيات القراءات (إن أردت إضافتها لاحقاً كملخص للواجهة الثانية)
+    Route::get('/reader/readings/stats', [MeterReadingController::class, 'readerReadingsStats']);
+
+    // ==========================================
+    // 3. مسارات الواجهة الثالثة (معدات القارئ وطلبات الصيانة)
+    // ==========================================
+    Route::get('/reader/equipment/my-stats', [EquipmentController::class, 'myEquipmentStats']);
+    Route::get('/reader/equipment', [EquipmentController::class, 'myEquipmentList']);
+    Route::post('/reader/service-requests', [ServiceRequestController::class, 'storeByReader']);
 
 });
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
-   /// Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
 
     Route::apiResource('/invoices', InvoiceController::class);
     Route::apiResource('/meter-readings', MeterReadingController::class);
@@ -53,16 +68,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/service-requests/my-status', [ServiceRequestController::class, 'myRequestsStatus']);
     Route::apiResource('service-requests' ,ServiceRequestController::class);
 
-
 });
-
 
 
 /*
 | User Routes
 |--------------------------------------------------------------------------
 */
- Route::get('/users/stats', [UserController::class, 'stats']);
+Route::get('/users/stats', [UserController::class, 'stats']);
 
 Route::get('/users/role/{role}', [UserController::class, 'showByRole']);
 
@@ -91,19 +104,10 @@ Route::apiResource('company-profiles', CompanyProfileController::class);
 
 
 Route::get('/invoices/stats', [InvoiceController::class, 'stats']);
-//Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
-
-
-
 
 Route::apiResource('roles' , RoleController::class);
 
 Route::apiResource('notifications' , NotificationController::class);
- Route::get('/showByCustomer/{customerId}', [NotificationController::class, 'showByCustomer']);
-
-
-
-
+Route::get('/showByCustomer/{customerId}', [NotificationController::class, 'showByCustomer']);
 
 require __DIR__.'/auth.php';
-

@@ -12,13 +12,9 @@ use App\Traits\ApiResponse;
 
 class ServiceRequestController extends Controller
 {
-    //
     use ApiResponse;
 
-
     // Get all service requests
-    // use the ServiceRequestResource to format the response
-    // use the with() method to eager load the related models
     public function index(Request $request)
     {
         $query = ServiceRequest::with([
@@ -59,10 +55,6 @@ class ServiceRequestController extends Controller
     }
 
     // Store a newly created service request in storage.
-    // use the ServiceRequestResource to format the response
-    // use the with() method to eager load the related models
-    // use the StoreServiceRequestRequest to validate the request data
-    // send id for meter & customer & creator & assignedEngineer
     public function store(StoreServiceRequestRequest $request)
     {
         $serviceRequest = ServiceRequest::create(
@@ -83,11 +75,7 @@ class ServiceRequestController extends Controller
         );
     }
 
-
-
     // Get service request by ID
-    // use the ServiceRequestResource to format the response
-    // use the load method to eager load the related models
     public function show(ServiceRequest $serviceRequest)
     {
         $serviceRequest->load([
@@ -101,11 +89,7 @@ class ServiceRequestController extends Controller
             'Service request retrieved successfully.',
             new ServiceRequestResource($serviceRequest)
         );
-        }
-
-
-
-    // ... الدوال الموجودة أصلاً (index, store, show, update, destroy, showByEngineer, myRequestsStatus, myLatestRequests, myMonthlyPerformance)
+    }
 
     public function myDashboardStats(Request $request)
     {
@@ -125,11 +109,9 @@ class ServiceRequestController extends Controller
             'completed_requests'   => $requestsByStatus['completed'] ?? 0,
             'total_equipment'      => $totalEquipment,
         ]);
-    } // ⬅️ تأكد القوس هذا موجود، وبعده قوس الكلاس نفسه }
+    }
 
-
-    ////
-        public function myLatestRequests(Request $request)
+    public function myLatestRequests(Request $request)
     {
         $engineerId = $request->user()->id;
 
@@ -148,7 +130,7 @@ class ServiceRequestController extends Controller
         );
     }
 
-        public function myMonthlyPerformance(Request $request)
+    public function myMonthlyPerformance(Request $request)
     {
         $engineerId = $request->user()->id;
 
@@ -164,11 +146,7 @@ class ServiceRequestController extends Controller
         return $this->success('تم جلب الأداء الشهري بنجاح.', $performance);
     }
 
-
     // Update the specified service request in storage.
-    // use the ServiceRequestResource to format the response
-    // use the load method to eager load the related models
-    // use the UpdateServiceRequestRequest to validate the request data
     public function update(
         UpdateServiceRequestRequest $request,
         ServiceRequest $serviceRequest
@@ -190,10 +168,7 @@ class ServiceRequestController extends Controller
         );
     }
 
-
     // Delete the specified service request from storage.
-    // use the ServiceRequestResource to format the response
-
     public function destroy(ServiceRequest $serviceRequest)
     {
         $serviceRequest->delete();
@@ -217,5 +192,27 @@ class ServiceRequestController extends Controller
             ->get();
 
         return response()->json($serviceRequests);
+    }
+
+    // 3- إضافة طلب خدمة أو صيانة جديد بواسطة القارئ (بحالة معلقة تتطلب موافقة الأدمن)
+    public function storeByReader(Request $request)
+    {
+        $request->validate([
+            'equipment_id' => 'required|exists:equipment,id',
+            'type' => 'required|string',
+            'description' => 'required|string',
+        ]);
+
+        $userId = $request->user()->id;
+
+        $serviceRequest = ServiceRequest::create([
+            'user_id' => $userId,
+            'equipment_id' => $request->equipment_id,
+            'type' => $request->type,
+            'description' => $request->description,
+            'status' => 'pending',
+        ]);
+
+        return $this->success('تم تقديم طلب الخدمة بنجاح وهو بانتظار موافقة الإدارة.', $serviceRequest, 201);
     }
 }
