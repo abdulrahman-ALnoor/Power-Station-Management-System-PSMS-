@@ -51,7 +51,7 @@ return new class extends Migration
                 'in_progress',
                 'completed',
                 'cancelled',
-            ])->nullable()->index();
+            ])->nullable()->index()->default('pending');
 
             $table->text('description')->nullable();
 

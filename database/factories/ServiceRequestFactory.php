@@ -16,9 +16,9 @@ class ServiceRequestFactory extends Factory
 
             'customer_id' => Customer::factory(),
 
-            'created_by' => User::factory(),
+            'created_by' => \App\Models\User::inRandomOrder()->first()->id,
 
-            'assigned_engineer_id' => User::factory(),
+            'assigned_engineer_id' => \App\Models\User::inRandomOrder()->first()->id,
 
             'request_type' => fake()->randomElement([
                 'new_connection',

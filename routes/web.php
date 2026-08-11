@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -120,3 +121,5 @@ Route::get(
 
 Route::resource('notifications', NotificationController::class)
     ->only(['index', 'show']);
+=======
+>>>>>>> da8032d6623100d66c0924bf337d873899f4a95d

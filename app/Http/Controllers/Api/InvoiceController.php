@@ -14,6 +14,7 @@ use App\Traits\ApiResponse;
 use App\Http\Resources\InvoiceResource;
 
 
+
 class InvoiceController extends Controller
 {
     use ApiResponse;
@@ -67,7 +68,10 @@ class InvoiceController extends Controller
         ->latest('created_at')
         ->paginate($request->get('per_page', 10));
 
-        return $this->success('تم جلب الفواتير بنجاح.', InvoiceResource::collection($invoices));
+        return $this->success(
+            'تم جلب الفواتير بنجاح.',
+            InvoiceResource::collection($invoices)
+            );
     }
 
     // this function is used to get statistics about invoices
@@ -95,14 +99,16 @@ class InvoiceController extends Controller
                                 ->whereYear('created_at', now()->year)
                                 ->sum('paid_amount');
 
-    return $this->success('تم جلب الإحصائيات بنجاح.', [
+    return $this->success(
+            'تم جلب إحصائيات الفواتير بنجاح.'   , 
+    [
         'total_revenue'          => $totalRevenue,
         'total_invoices'         => $totalInvoices,
         'paid_invoices_count'    => $paidInvoicesCount,
         'partially_paid_count'   => $partiallyPaidInvoicesCount,
         'overdue_amount'         => $overdueAmount,
         'this_month_collect'     => $thisMonthCollect,
-    ]);
+    ] );
     
 }
 
@@ -180,6 +186,7 @@ class InvoiceController extends Controller
                         'consumptionCharge'
                     ])
                 ),
+                
                 201
             );
         } catch (\Exception $e) {
@@ -242,7 +249,8 @@ class InvoiceController extends Controller
         $invoice->delete();
 
         return $this->success(
-            'تم حذف الفاتورة بنجاح.'
+            'تم حذف الفاتورة بنجاح.',
+            null
         );
     }
 }

@@ -28,7 +28,7 @@ class CustomerFactory extends Factory
 
             'notes' => fake()->optional()->sentence(),
 
-            'created_by' => User::factory(),
+            'created_by' => \App\Models\User::inRandomOrder()->first()->id,
         ];
     }
 }
