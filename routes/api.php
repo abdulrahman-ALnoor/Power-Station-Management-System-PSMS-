@@ -7,6 +7,26 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\Api\AuthController;
+
+// مسار تسجيل الدخول (غير محمي)
+Route::post('/login', [AuthController::class, 'login']);
+
+
+// جميع المسارات داخل هذه المجموعة تتطلب توكن (محمية بـ Middleware)
+Route::middleware('auth:sanctum')->group(function () {
+    
+    // مسار تجريبي للتأكد من عمل التوكن
+    Route::get('/reader/profile', function (Request $request) {
+        return response()->json([
+            'success' => true,
+            'data' => $request->user()
+        ]);
+    });
+
+    // ... سيتم إضافة مسارات لوحة التحكم وإدارة القراءات والمعدات هنا لاحقاً ...
+
+});
 
 Route::get('/user', function (Request $request) {
     return $request->user();
