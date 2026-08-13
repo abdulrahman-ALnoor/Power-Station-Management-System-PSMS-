@@ -12,9 +12,9 @@ use App\Traits\ApiResponse;
 
 class EquipmentController extends Controller
 {
-
     use ApiResponse;
-        public function myStats(Request $request)
+
+    public function myStats(Request $request)
     {
         $userId = $request->user()->id;
 
@@ -34,7 +34,7 @@ class EquipmentController extends Controller
     // Get all equipment
     // use the EquipmentResource to format the response
     // use the with() method to eager load the related models
-        public function index(Request $request)
+    public function index(Request $request)
     {
         $query = Equipment::with(['user', 'creator'])
             ->where('user_id', $request->user()->id);
@@ -59,9 +59,6 @@ class EquipmentController extends Controller
     }
 
     // Store a newly created equipment in storage.
-    // use the EquipmentResource to format the response
-    // use the with() method to eager load the related models
-    // use the StoreEquipmentRequest to validate the request data
     public function store(StoreEquipmentRequest $request)
     {
         $data = $request->validated();
@@ -81,8 +78,6 @@ class EquipmentController extends Controller
     }
 
     // Display the specified equipment.
-    // use the EquipmentResource to format the response
-    // use the with() method to eager load the related models
     public function show(Equipment $equipment)
     {
         $equipment->load([
@@ -97,9 +92,6 @@ class EquipmentController extends Controller
     }
 
     // Update the specified equipment in storage.
-    // use the EquipmentResource to format the response
-    // use the with() method to eager load the related models
-    // use the UpdateEquipmentRequest to validate the request data
     public function update(
         UpdateEquipmentRequest $request,
         Equipment $equipment
@@ -120,8 +112,6 @@ class EquipmentController extends Controller
     }
 
     // Remove the specified equipment from storage.
-    // use the EquipmentResource to format the response
-    // use the with() method to eager load the related models
     public function destroy(Equipment $equipment)
     {
         $equipment->delete();
@@ -131,9 +121,7 @@ class EquipmentController extends Controller
         );
     }
 
-
     // function with out route
-
     public function showByUser($userId)
     {
         $equipment = Equipment::with([
@@ -148,5 +136,19 @@ class EquipmentController extends Controller
             'Equipment retrieved successfully.',
             EquipmentResource::collection($equipment)
         );
+    }
+
+    // ==========================================
+    // دوال إضافية للتوافق مع مسارات الواجهة الثالثة للقارئ
+    // ==========================================
+
+    public function myEquipmentStats(Request $request)
+    {
+        return $this->myStats($request);
+    }
+
+    public function myEquipmentList(Request $request)
+    {
+        return $this->index($request);
     }
 }
