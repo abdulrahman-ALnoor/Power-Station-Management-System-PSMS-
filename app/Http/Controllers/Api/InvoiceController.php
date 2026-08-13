@@ -12,6 +12,8 @@ use App\Models\ConsumptionCharge;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\ApiResponse;
 use App\Http\Resources\InvoiceResource;
+use App\Exports\InvoicesExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 
 
@@ -253,4 +255,45 @@ class InvoiceController extends Controller
             null
         );
     }
+    public function monthlyRevenue()
+    {
+        $revenue = Invoice::query()
+            ->selectRaw('MONTH(created_at) as month')
+            ->selectRaw('SUM(paid_amount) as total_revenue')
+            ->whereYear('created_at', now()->year)
+            ->groupByRaw('MONTH(created_at)')
+            ->orderByRaw('MONTH(created_at)')
+            ->get();
+
+        return $this->success(
+            'تم جلب الإيرادات الشهرية بنجاح.',
+            $revenue
+        );
+    }
+
+    public function latestPayments()
+    {
+        $payments = Invoice::with([
+            'customer:id,full_name',
+            'accountant:id,name',
+        ])
+        ->latest('created_at')
+        ->take(10)
+        ->get();
+
+        return $this->success(
+            'تم جلب آخر التحصيلات بنجاح.',
+            InvoiceResource::collection($payments)
+        );
+    }
+    
+    public function exportExcel()
+    {
+        return Excel::download(
+            new InvoicesExport,
+            'invoices.xlsx'
+        );
+    }
 }
+
+

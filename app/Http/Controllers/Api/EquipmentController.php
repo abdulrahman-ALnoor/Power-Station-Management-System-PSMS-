@@ -30,6 +30,23 @@ class EquipmentController extends Controller
             'by_status' => $byStatus,
         ]);
     }
+    public function stats()
+    {
+        $totalEquipment = Equipment::count();
+
+        $byStatus = Equipment::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return $this->success(
+            'تم جلب إحصائيات المعدات بنجاح.',
+            [
+                'total_equipment' => $totalEquipment,
+                'by_status' => $byStatus,
+            ]
+        );
+    }
 
     // Get all equipment
     // use the EquipmentResource to format the response
