@@ -18,29 +18,45 @@ class MeterController extends Controller
          * Display a listing of the resource.
          */
         // This function retrieves all meters with their related data.
-        public function index()
-        {
-            try {
+            public function index(Request $request)
+    {
+        try {
+            $query = Meter::with(['customer', 'installer', 'creator']);
 
-                $meters = Meter::with([
-                    'customer',
-                    'installer',
-                    'creator',
-                ])->latest()->get();
+            // بحث برقم العداد
+            if ($request->filled('search')) {
+                $query->where('meter_number', 'like', '%' . $request->search . '%');
+            }
 
-                return $this->success(
-                    'تم جلب العدادات بنجاح.',
-                    MeterResource::collection($meters)
-                );
+            // بحث بالمنطقة
+            if ($request->filled('location')) {
+                $query->where('installation_location', 'like', '%' . $request->location . '%');
+            }
 
-            } catch (\Exception $e) {
+            // فلترة بتاريخ الإنشاء (من - إلى)
+            // بدّل السطرين دول
+                if ($request->filled('date_from')) {
+                    $query->whereDate('installation_date', '>=', $request->date_from);
+                }
 
-                return $this->error(
-                    'حدث خطأ أثناء جلب العدادات: ' . $e->getMessage()
-                );
+                if ($request->filled('date_to')) {
+                    $query->whereDate('installation_date', '<=', $request->date_to);
+                }
+
+            // فلترة حسب الحالة
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
 
             }
-            }
+
+            $meters = $query->latest()->paginate(10);
+
+            return $this->success('تم جلب العدادات بنجاح.', MeterResource::collection($meters));
+
+        } catch (\Exception $e) {
+            return $this->error('حدث خطأ أثناء جلب العدادات: ' . $e->getMessage());
+        }
+    }
 
 
         /**
@@ -102,6 +118,28 @@ class MeterController extends Controller
         }
     }
 
+            public function stats()
+    {
+        try {
+            $total = Meter::count();
+
+            $byStatus = Meter::query()
+                ->selectRaw('status, count(*) as total')
+                ->groupBy('status')
+                ->pluck('total', 'status');
+
+            return $this->success('تم جلب إحصائيات العدادات بنجاح.', [
+                'total_meters' => $total,
+                'active'       => $byStatus['active'] ?? 0,
+                'disconnected' => $byStatus['disconnected'] ?? 0,
+                'maintenance'  => $byStatus['maintenance'] ?? 0,
+                'damaged'      => $byStatus['damaged'] ?? 0,
+            ]);
+        } catch (\Exception $e) {
+            return $this->error('حدث خطأ أثناء جلب الإحصائيات: ' . $e->getMessage());
+        }
+    }
+
             /**
          * Show the form for creating a new resource.
          */
@@ -142,7 +180,7 @@ class MeterController extends Controller
 
             }
         }
-                
+
             /**
          * Remove the specified resource from storage.
          */

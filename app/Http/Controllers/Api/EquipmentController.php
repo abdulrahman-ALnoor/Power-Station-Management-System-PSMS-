@@ -12,31 +12,70 @@ use App\Traits\ApiResponse;
 
 class EquipmentController extends Controller
 {
-    
     use ApiResponse;
+
+    public function myStats(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $totalEquipment = Equipment::where('user_id', $userId)->count();
+
+        $byStatus = Equipment::where('user_id', $userId)
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return $this->success('تم جلب إحصائيات المهندس بنجاح.', [
+            'total_equipment' => $totalEquipment,
+            'by_status' => $byStatus,
+        ]);
+    }
+    public function stats()
+    {
+        $totalEquipment = Equipment::count();
+
+        $byStatus = Equipment::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return $this->success(
+            'تم جلب إحصائيات المعدات بنجاح.',
+            [
+                'total_equipment' => $totalEquipment,
+                'by_status' => $byStatus,
+            ]
+        );
+    }
 
     // Get all equipment
     // use the EquipmentResource to format the response
     // use the with() method to eager load the related models
-    public function index()
+    public function index(Request $request)
     {
-        $equipment = Equipment::with([
-            'user',
-            'creator',
-        ])
-            ->latest()
-            ->get();
+        $query = Equipment::with(['user', 'creator'])
+            ->where('user_id', $request->user()->id);
 
-        return $this->success(
-            'Equipment retrieved successfully.',
-            EquipmentResource::collection($equipment)
-        );
+        // بحث باسم المعدة أو رقمها التسلسلي
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('equipment_name', 'like', "%{$search}%")
+                    ->orWhere('serial_number', 'like', "%{$search}%");
+            });
+        }
+
+        // فلترة حسب الحالة
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $equipment = $query->latest()->paginate(10);
+
+        return $this->success('تم جلب المعدات بنجاح.', $equipment);
     }
 
     // Store a newly created equipment in storage.
-    // use the EquipmentResource to format the response
-    // use the with() method to eager load the related models
-    // use the StoreEquipmentRequest to validate the request data
     public function store(StoreEquipmentRequest $request)
     {
         $data = $request->validated();
@@ -55,9 +94,7 @@ class EquipmentController extends Controller
         );
     }
 
-    // Display the specified equipment. 
-    // use the EquipmentResource to format the response
-    // use the with() method to eager load the related models
+    // Display the specified equipment.
     public function show(Equipment $equipment)
     {
         $equipment->load([
@@ -72,9 +109,6 @@ class EquipmentController extends Controller
     }
 
     // Update the specified equipment in storage.
-    // use the EquipmentResource to format the response
-    // use the with() method to eager load the related models
-    // use the UpdateEquipmentRequest to validate the request data
     public function update(
         UpdateEquipmentRequest $request,
         Equipment $equipment
@@ -95,8 +129,6 @@ class EquipmentController extends Controller
     }
 
     // Remove the specified equipment from storage.
-    // use the EquipmentResource to format the response
-    // use the with() method to eager load the related models
     public function destroy(Equipment $equipment)
     {
         $equipment->delete();
@@ -106,9 +138,7 @@ class EquipmentController extends Controller
         );
     }
 
-
     // function with out route
-
     public function showByUser($userId)
     {
         $equipment = Equipment::with([
@@ -123,5 +153,19 @@ class EquipmentController extends Controller
             'Equipment retrieved successfully.',
             EquipmentResource::collection($equipment)
         );
+    }
+
+    // ==========================================
+    // دوال إضافية للتوافق مع مسارات الواجهة الثالثة للقارئ
+    // ==========================================
+
+    public function myEquipmentStats(Request $request)
+    {
+        return $this->myStats($request);
+    }
+
+    public function myEquipmentList(Request $request)
+    {
+        return $this->index($request);
     }
 }
