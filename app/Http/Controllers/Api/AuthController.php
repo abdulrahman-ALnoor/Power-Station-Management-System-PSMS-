@@ -4,42 +4,50 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        // 1. التحقق من المدخلات (مطابقة للواجهة: اسم المستخدم وكلمة المرور)
+        // 1. التحقق من المدخلات
         $request->validate([
-            'username' => 'required|string',
+            'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
-        // 2. البحث عن القارئ في قاعدة البيانات
-        $user = User::where('username', $request->username)->first();
+        // 2. البحث عن المستخدم عبر البريد الإلكتروني
+        $user = User::where('email', $request->email)->first();
 
-        // 3. التحقق من صحة البيانات
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        // 3. التحقق من وجود المستخدم
+        if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'اسم المستخدم أو كلمة المرور غير صحيحة.',
+                'message' => 'البريد الإلكتروني غير موجود في قاعدة البيانات.',
+            ], 404);
+        }
+
+        // 4. التحقق من صحة كلمة المرور
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'كلمة المرور غير صحيحة.',
             ], 401);
         }
 
-        // 4. إنشاء التوكن الخاص بالقارئ
+        // 5. إنشاء التوكن (Token) بنجاح
         $token = $user->createToken('ReaderAccess')->plainTextToken;
 
-        // 5. إرجاع الاستجابة بنجاح
+        // 6. إرجاع الاستجابة المطلوبة
         return response()->json([
             'success' => true,
             'message' => 'تم تسجيل الدخول بنجاح.',
             'data' => [
-                'reader_info' => [
+                'user_info' => [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'username' => $user->username,
+                    'email' => $user->email,
                 ],
                 'token' => $token
             ]
