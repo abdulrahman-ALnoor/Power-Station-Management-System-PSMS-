@@ -22,6 +22,7 @@ class Invoice extends Model
         'remaining_balance',
         'status',
         'payment_notes',
+        'pdf_path'
         
     ];
 
