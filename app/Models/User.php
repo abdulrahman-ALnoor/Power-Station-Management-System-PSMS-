@@ -1,19 +1,15 @@
 <?php
 
 namespace App\Models;
-
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Support\Str;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
-    use HasApiTokens;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -51,67 +47,73 @@ class User extends Authenticatable
         ];
     }
 
-
-    // the roles() function defines a many-to-many 
-    //  relationship between the User model and the Role model.
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class, 'user_roles');
-    }
-
-
-    // the createdCustomers() function defines a one-to-many 
-    //relationship between the User model and the Customer model.
-
+    /**
+     * The createdCustomers() function defines a one-to-many
+     * relationship between the User model and the Customer model.
+     */
     public function createdCustomers()
     {
         return $this->hasMany(Customer::class, 'created_by');
     }
 
-    // the installedMeters() function defines a one-to-many 
-    //relationship between the User model and the Meter model.
+    /**
+     * The installedMeters() function defines a one-to-many
+     * relationship between the User model and the Meter model.
+     */
     public function installedMeters()
     {
         return $this->hasMany(Meter::class, 'installed_by');
     }
 
-    // the createdMeters() function defines a one-to-many 
-    //relationship between the User model and the Meter model.
+    /**
+     * The createdMeters() function defines a one-to-many
+     * relationship between the User model and the Meter model.
+     */
     public function createdMeters()
     {
         return $this->hasMany(Meter::class, 'created_by');
     }
 
-    // the createdMeterReadings() function defines a one-to-many
-    //  relationship between the User model and the MeterReading model.
+    /**
+     * The createdMeterReadings() function defines a one-to-many
+     * relationship between the User model and the MeterReading model.
+     */
     public function createdMeterReadings()
     {
         return $this->hasMany(MeterReading::class, 'created_by');
     }
 
-    // the createdInvoices() function defines a one-to-many
-    //  relationship between the User model and the Invoice model.
+    /**
+     * The accountedInvoices() function defines a one-to-many
+     * relationship between the User model and the Invoice model.
+     */
     public function accountedInvoices()
     {
         return $this->hasMany(Invoice::class, 'accountant_id');
     }
 
-    // the createdServiceRequests() function defines a one-to-many
-    //  relationship between the User model and the ServiceRequest model.
+    /**
+     * The createdServiceRequests() function defines a one-to-many
+     * relationship between the User model and the ServiceRequest model.
+     */
     public function createdServiceRequests()
     {
         return $this->hasMany(ServiceRequest::class, 'created_by');
     }
 
-    // the assignedServiceRequests() function defines a one-to-many
-    //  relationship between the User model and the ServiceRequest model.
+    /**
+     * The equipment() function defines a one-to-many
+     * relationship between the User model and the Equipment model.
+     */
     public function equipment()
     {
         return $this->hasMany(Equipment::class);
     }
 
-    // the assignedServiceRequests() function defines a one-to-many
-    //  relationship between the User model and the ServiceRequest model.
+    /**
+     * The createdEquipment() function defines a one-to-many
+     * relationship between the User model and the Equipment model.
+     */
     public function createdEquipment()
     {
         return $this->hasMany(Equipment::class, 'created_by');
