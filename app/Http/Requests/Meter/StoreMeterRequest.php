@@ -24,7 +24,8 @@ class StoreMeterRequest extends FormRequest
         return [
             'customer_id' => ['required', 'exists:customers,id'],
             'meter_number' => ['required', 'string', 'max:100', 'unique:meters,meter_number'],
-            'qr_code' => ['required', 'string', 'max:255', 'unique:meters,qr_code'],
+            // تم تحويل الحقل إلى nullable لأننا نقوم بتوليده برمجياً
+            'qr_code' => ['nullable', 'string', 'max:255', 'unique:meters,qr_code'],
             'installation_date' => ['nullable', 'date'],
             'installation_location' => ['nullable', 'string'],
             'status' => ['nullable', 'in:active,disconnected,maintenance,damaged'],
@@ -46,7 +47,6 @@ class StoreMeterRequest extends FormRequest
             'meter_number.unique' => 'رقم العداد مستخدم مسبقًا.',
             'meter_number.max' => 'رقم العداد يجب ألا يتجاوز 100 حرف.',
 
-            'qr_code.required' => 'رمز QR مطلوب.',
             'qr_code.unique' => 'رمز QR مستخدم مسبقًا.',
             'qr_code.max' => 'رمز QR يجب ألا يتجاوز 255 حرفًا.',
 

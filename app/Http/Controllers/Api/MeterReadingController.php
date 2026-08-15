@@ -73,73 +73,71 @@ class MeterReadingController extends Controller
             ->paginate($request->get('per_page', 10));
 
         return $this->success(
-        
             'تم جلب قراءات العدادات بنجاح.',
             MeterReadingResource::collection($readings)
         );
-        
     }
 
     public function stats(Request $request)
-{
-    // 1. إجمالي عدد القراءات
-    $totalReadings = MeterReading::count();
+    {
+        // 1. إجمالي عدد القراءات
+        $totalReadings = MeterReading::count();
 
-    // 2. إجمالي الاستهلاك بالكيلو واط
-    $totalConsumption = MeterReading::sum('consumption');
+        // 2. إجمالي الاستهلاك بالكيلو واط
+        $totalConsumption = MeterReading::sum('consumption');
 
-    // 3. إجمالي الإيرادات المتوقعة
-    // مجموع تكلفة الاستهلاك لكل القراءات
-    $expectedRevenue = MeterReading::sum('reading_cost');
+        // 3. إجمالي الإيرادات المتوقعة
+        // مجموع تكلفة الاستهلاك لكل القراءات
+        $expectedRevenue = MeterReading::sum('reading_cost');
 
-    // 4. عدد القراءات المعتمدة
-    $approvedReadings = MeterReading::where('status', 'approved')
-        ->count();
+        // 4. عدد القراءات المعتمدة
+        $approvedReadings = MeterReading::where('status', 'approved')
+            ->count();
 
-    // 5. عدد القراءات المعلقة
-    $pendingReadings = MeterReading::where('status', 'pending')
-        ->count();
+        // 5. عدد القراءات المعلقة
+        $pendingReadings = MeterReading::where('status', 'pending')
+            ->count();
 
-    // 6. عدد القراءات المرفوضة
-    $rejectedReadings = MeterReading::where('status', 'rejected')
-        ->count();
+        // 6. عدد القراءات المرفوضة
+        $rejectedReadings = MeterReading::where('status', 'rejected')
+            ->count();
 
-    // 7. استهلاك هذا الشهر
-    $thisMonthConsumption = MeterReading::whereMonth(
-            'reading_date',
-            now()->month
-        )
-        ->whereYear(
-            'reading_date',
-            now()->year
-        )
-        ->sum('consumption');
+        // 7. استهلاك هذا الشهر
+        $thisMonthConsumption = MeterReading::whereMonth(
+                'reading_date',
+                now()->month
+            )
+            ->whereYear(
+                'reading_date',
+                now()->year
+            )
+            ->sum('consumption');
 
-    // 8. إيرادات هذا الشهر المتوقعة
-    $thisMonthRevenue = MeterReading::whereMonth(
-            'reading_date',
-            now()->month
-        )
-        ->whereYear(
-            'reading_date',
-            now()->year
-        )
-        ->sum('reading_cost');
+        // 8. إيرادات هذا الشهر المتوقعة
+        $thisMonthRevenue = MeterReading::whereMonth(
+                'reading_date',
+                now()->month
+            )
+            ->whereYear(
+                'reading_date',
+                now()->year
+            )
+            ->sum('reading_cost');
 
-    return $this->success(
-        'تم جلب إحصائيات قراءات العدادات بنجاح.',
-        [
-            'total_readings' => $totalReadings,
-            'total_consumption' => $totalConsumption,
-            'expected_revenue' => $expectedRevenue,
-            'approved_readings' => $approvedReadings,
-            'pending_readings' => $pendingReadings,
-            'rejected_readings' => $rejectedReadings,
-            'this_month_consumption' => $thisMonthConsumption,
-            'this_month_revenue' => $thisMonthRevenue,
-        ]
-    );
-}
+        return $this->success(
+            'تم جلب إحصائيات قراءات العدادات بنجاح.',
+            [
+                'total_readings' => $totalReadings,
+                'total_consumption' => $totalConsumption,
+                'expected_revenue' => $expectedRevenue,
+                'approved_readings' => $approvedReadings,
+                'pending_readings' => $pendingReadings,
+                'rejected_readings' => $rejectedReadings,
+                'this_month_consumption' => $thisMonthConsumption,
+                'this_month_revenue' => $thisMonthRevenue,
+            ]
+        );
+    }
 
     /**
      * Store a newly created resource in storage.
@@ -207,8 +205,6 @@ class MeterReadingController extends Controller
                     'consumptionCharge',
                 ])
             ),
-            
-            
             201
         );
         }catch(\Exception $e){
@@ -421,5 +417,89 @@ class MeterReadingController extends Controller
             'pending_readings' => MeterReading::where('created_by', $userId)->where('status', 'pending')->count(),
             'rejected_readings' => MeterReading::where('created_by', $userId)->where('status', 'rejected')->count(),
         ]);
+    }
+
+    /**
+     * تسجيل قراءة العداد بعد مسح الـ QR Code
+     */
+    public function storeReadingByQr(Request $request, Meter $meter)
+    {
+        try {
+            // التحقق من البيانات المرسلة (القراءة الجديدة)
+            $validated = $request->validate([
+                'current_reading' => 'required|numeric|min:0',
+                'reading_date'    => 'required|date',
+                'reading_method'  => 'nullable|string',
+                'notes'           => 'nullable|string',
+            ]);
+
+            $reading = DB::transaction(function() use ($validated, $meter, $request) {
+                // 1. جلب إعدادات الشركة لمعرفة سعر الكيلو واط
+                $companyProfile = CompanyProfile::first();
+                if(!$companyProfile){
+                    throw new \Exception('لم يتم إعداد بيانات الشركة بعد. يرجى إعدادها قبل إضافة قراءة العداد.');
+                }
+
+                // 2. جلب القراءة السابقة
+                $lastReading = MeterReading::where('meter_id', $meter->id)
+                    ->latest('reading_date')
+                    ->latest('id')
+                    ->first();
+                $previousReading = $lastReading?->current_reading ?? 0;
+
+                // 3. التحقق من منطقية القراءة الجديدة
+                if ($validated['current_reading'] < $previousReading) {
+                    throw new \Exception('القراءة الحالية لا يمكن أن تكون أقل من القراءة السابقة.');
+                }
+
+                // 4. العمليات الحسابية
+                $pricePerKwh = $companyProfile->price_per_kwh;
+                $consumption = $validated['current_reading'] - $previousReading;
+                $readingCost = $consumption * $pricePerKwh;
+
+                // 5. إنشاء القراءة الجديدة
+                $reading = MeterReading::create([
+                    'meter_id'         => $meter->id,
+                    'previous_reading' => $previousReading,
+                    'current_reading'  => $validated['current_reading'],
+                    'consumption'      => $consumption,
+                    'price_per_kwh'    => $pricePerKwh,
+                    'reading_cost'     => $readingCost,
+                    'reading_date'     => $validated['reading_date'],
+                    'reading_method'   => $validated['reading_method'] ?? 'qr_scan', // تمييز طريقة القراءة
+                    'status'           => 'pending',
+                    'notes'            => $validated['notes'] ?? null,
+                    'created_by'       => Auth::id() ?? 1, // ربط القارئ الحالي
+                ]);
+
+                // 6. إنشاء فاتورة الاستهلاك (الرصيد)
+                ConsumptionCharge::create([
+                    'customer_id'      => $meter->customer_id,
+                    'meter_id'         => $meter->id,
+                    'meter_reading_id' => $reading->id,
+                    'total_amount'     => $readingCost,
+                    'paid_amount'      => 0,
+                    'remaining_amount' => $readingCost,
+                    'status'           => 'pending',
+                ]);
+
+                return $reading;
+            });
+
+            return $this->success(
+                'تم تسجيل القراءة بنجاح عبر الـ QR Code.',
+                new MeterReadingResource(
+                    $reading->load([
+                        'meter.customer',
+                        'creator',
+                        'consumptionCharge',
+                    ])
+                ),
+                201
+            );
+
+        } catch (\Exception $e) {
+            return $this->error('حدث خطأ أثناء تسجيل القراءة: ' . $e->getMessage());
+        }
     }
 }

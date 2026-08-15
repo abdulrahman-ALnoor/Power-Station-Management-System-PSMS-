@@ -17,6 +17,9 @@ use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Http\Request;
 
+// مسار لتسجيل قراءة العداد عبر الـ QR Code
+Route::post('/reader/meters/{meter}/record-reading', [MeterReadingController::class, 'storeReadingByQr'])->middleware('auth:sanctum');
+
 // مسار تسجيل الدخول (غير محمي)
 Route::post('/login', [AuthController::class, 'login']);
 
