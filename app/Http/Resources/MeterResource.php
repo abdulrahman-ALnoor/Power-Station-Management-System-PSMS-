@@ -23,7 +23,13 @@ class MeterResource extends JsonResource
             ],
 
             'meter_number' => $this->meter_number,
-            'qr_code' => $this->qr_code,
+            
+            // الحقل القديم (المسار النسبي)
+            'qr_code' => $this->qr_code, 
+            
+            // الحقل الجديد (الرابط الكامل للـ QR جاهز للعرض)
+            'qr_code_url' => $this->qr_code ? asset('storage/' . $this->qr_code) : null,
+            
             'installation_date' => $this->installation_date,
             'installation_location' => $this->installation_location,
             'status' => $this->status,
