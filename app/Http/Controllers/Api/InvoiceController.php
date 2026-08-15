@@ -12,7 +12,11 @@ use App\Models\ConsumptionCharge;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\ApiResponse;
 use App\Http\Resources\InvoiceResource;
+use App\Exports\InvoicesExport;
+use Maatwebsite\Excel\Facades\Excel;
 
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 
 class InvoiceController extends Controller
@@ -253,4 +257,100 @@ class InvoiceController extends Controller
             null
         );
     }
+    public function exportPdf(Invoice $invoice)
+    {
+        $invoice->load([
+            'customer',
+            'accountant',
+            'consumptionCharge.meter',
+            'consumptionCharge.meterReading',
+        ]);
+
+        $pdf = Pdf::loadView(
+            'invoices.pdf',
+            compact('invoice')
+        );
+
+        $fileName = $invoice->invoice_number . '.pdf';
+
+        $path = 'invoices/' . $fileName;
+
+        Storage::disk('public')->put(
+            $path,
+            $pdf->output()
+        );
+
+        $invoice->update([
+            'pdf_path' => $path,
+        ]);
+
+        return $this->success(
+            'تم تصدير الفاتورة إلى PDF بنجاح.',
+            [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'pdf_path' => $path,
+                'pdf_url' => Storage::disk('public')->url($path),
+            ]
+            
+        );
+    }
+    
+    public function customerInvoices($customerId)
+        {
+            $invoices = Invoice::with([
+                'customer',
+                'accountant',
+                'consumptionCharge',
+            ])
+            ->where('customer_id', $customerId)
+            ->latest('created_at')
+            ->paginate(10);
+
+            return $this->success(
+                'تم جلب فواتير العميل بنجاح.',
+                InvoiceResource::collection($invoices)
+            );
+        }
+    public function monthlyRevenue()
+    {
+        $revenue = Invoice::query()
+            ->selectRaw('MONTH(created_at) as month')
+            ->selectRaw('SUM(paid_amount) as total_revenue')
+            ->whereYear('created_at', now()->year)
+            ->groupByRaw('MONTH(created_at)')
+            ->orderByRaw('MONTH(created_at)')
+            ->get();
+
+        return $this->success(
+            'تم جلب الإيرادات الشهرية بنجاح.',
+            $revenue
+        );
+    }
+
+    public function latestPayments()
+    {
+        $payments = Invoice::with([
+            'customer:id,full_name',
+            'accountant:id,name',
+        ])
+        ->latest('created_at')
+        ->take(10)
+        ->get();
+
+        return $this->success(
+            'تم جلب آخر التحصيلات بنجاح.',
+            InvoiceResource::collection($payments)
+        );
+    }
+    
+    public function exportExcel()
+    {
+        return Excel::download(
+            new InvoicesExport,
+            'invoices.xlsx'
+        );
+    }
 }
+
+

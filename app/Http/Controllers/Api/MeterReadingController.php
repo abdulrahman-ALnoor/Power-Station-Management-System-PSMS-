@@ -65,27 +65,63 @@ class MeterReadingController extends Controller
             ->orderByDesc('id')
             ->paginate($request->get('per_page', 10));
 
-        return $this->success('تم جلب قراءات العدادات بنجاح.', MeterReadingResource::collection($readings));
+        return $this->success(
+        
+            'تم جلب قراءات العدادات بنجاح.',
+            MeterReadingResource::collection($readings)
+        );
+        
     }
 
     public function stats(Request $request)
-    {
-        $totalReadings = MeterReading::count();
-        $totalConsumption = MeterReading::sum('consumption');
-        $expectedRevenue = MeterReading::sum('reading_cost');
-        $approvedReadings = MeterReading::where('status', 'approved')->count();
-        $pendingReadings = MeterReading::where('status', 'pending')->count();
-        $rejectedReadings = MeterReading::where('status', 'rejected')->count();
-        
-        $thisMonthConsumption = MeterReading::whereMonth('reading_date', now()->month)
-            ->whereYear('reading_date', now()->year)
-            ->sum('consumption');
+{
+    // 1. إجمالي عدد القراءات
+    $totalReadings = MeterReading::count();
 
-        $thisMonthRevenue = MeterReading::whereMonth('reading_date', now()->month)
-            ->whereYear('reading_date', now()->year)
-            ->sum('reading_cost');
+    // 2. إجمالي الاستهلاك بالكيلو واط
+    $totalConsumption = MeterReading::sum('consumption');
 
-        return $this->success('تم جلب إحصائيات قراءات العدادات بنجاح.', [
+    // 3. إجمالي الإيرادات المتوقعة
+    // مجموع تكلفة الاستهلاك لكل القراءات
+    $expectedRevenue = MeterReading::sum('reading_cost');
+
+    // 4. عدد القراءات المعتمدة
+    $approvedReadings = MeterReading::where('status', 'approved')
+        ->count();
+
+    // 5. عدد القراءات المعلقة
+    $pendingReadings = MeterReading::where('status', 'pending')
+        ->count();
+
+    // 6. عدد القراءات المرفوضة
+    $rejectedReadings = MeterReading::where('status', 'rejected')
+        ->count();
+
+    // 7. استهلاك هذا الشهر
+    $thisMonthConsumption = MeterReading::whereMonth(
+            'reading_date',
+            now()->month
+        )
+        ->whereYear(
+            'reading_date',
+            now()->year
+        )
+        ->sum('consumption');
+
+    // 8. إيرادات هذا الشهر المتوقعة
+    $thisMonthRevenue = MeterReading::whereMonth(
+            'reading_date',
+            now()->month
+        )
+        ->whereYear(
+            'reading_date',
+            now()->year
+        )
+        ->sum('reading_cost');
+
+    return $this->success(
+        'تم جلب إحصائيات قراءات العدادات بنجاح.',
+        [
             'total_readings' => $totalReadings,
             'total_consumption' => $totalConsumption,
             'expected_revenue' => $expectedRevenue,
@@ -94,8 +130,9 @@ class MeterReadingController extends Controller
             'rejected_readings' => $rejectedReadings,
             'this_month_consumption' => $thisMonthConsumption,
             'this_month_revenue' => $thisMonthRevenue,
-        ]);
-    }
+        ]
+    );
+}
 
     /**
      * Store a newly created resource in storage.
@@ -154,11 +191,20 @@ class MeterReadingController extends Controller
                 return $reading;
             });
             
-            return $this->success('تم تسجيل قراءة العداد بنجاح.', new MeterReadingResource(
-                $reading->load(['meter.customer', 'creator', 'consumptionCharge'])
-            ), 201);
+            return $this->success(
+                'تم تسجيل قراءة العداد بنجاح.',
+                new MeterReadingResource(
+                $reading->load([
+                    'meter.customer',
+                    'creator',
+                    'consumptionCharge',
+                ])
+            ),
             
-        } catch(\Exception $e) {
+            
+            201
+        );
+        }catch(\Exception $e){
             return $this->error('حدث خطأ أثناء حفظ قراءة العداد: ' . $e->getMessage());
         }
     }
@@ -191,13 +237,19 @@ class MeterReadingController extends Controller
                 ->first();
                 
             if ($meterReading->id !== $lastReading->id) {
-                return $this->error('لا يمكن تعديل هذه القراءة لأنها ليست آخر قراءة لهذا العداد.', 422);
+                return $this->error(
+                    'لا يمكن تعديل هذه القراءة لأنها ليست آخر قراءة لهذا العداد.',
+                    422
+                );
             }
             
             $hasInvoice = $meterReading->consumptionCharge()->whereHas('invoice')->exists();
 
             if ($hasInvoice) {
-                return $this->error('لا يمكن تعديل القراءة بعد تسجيل عملية دفع لها.', 422);
+                return $this->error(
+                    'لا يمكن تعديل القراءة بعد تسجيل عملية دفع لها.',
+                    422
+                );
             }
 
             $previousReading = MeterReading::where('meter_id', $meterReading->meter_id)
