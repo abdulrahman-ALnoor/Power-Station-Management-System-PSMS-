@@ -30,11 +30,9 @@ class CompanyProfileController extends Controller
     public function index()
     {
         $company = CompanyProfile::first();
-
-        if (!$company) {
-            return response()->json(['message' => 'بيانات الشركة غير موجودة'], 404);
-        }
-
+                if (!$company) {
+                    return $this->error('بيانات الشركة غير موجودة', 404);
+                }
         return $this->success('تم جلب بيانات الشركة بنجاح', new CompanyProfileResource($company), 200);
     }
 
@@ -42,10 +40,9 @@ class CompanyProfileController extends Controller
     {
         $company = CompanyProfile::first();
 
-        if (!$company) {
-            return response()->json(['message' => 'بيانات الشركة غير موجودة'], 404);
+                if (!$company) {
+            return $this->error('بيانات الشركة غير موجودة', 404);
         }
-
         $company->update($request->validated());
 
         return $this->success('تم تحديث بيانات الشركة بنجاح', new CompanyProfileResource($company), 200);

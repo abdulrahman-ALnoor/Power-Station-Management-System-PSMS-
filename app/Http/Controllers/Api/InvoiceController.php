@@ -30,6 +30,8 @@ class InvoiceController extends Controller
     // it returns a paginated response with the invoices and their related customer, accountant, and consumption charge data
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Invoice::class);
+
         $query = Invoice::query();
 
         // 1. البحث النصي (رقم الفاتورة أو اسم العميل)
@@ -104,7 +106,7 @@ class InvoiceController extends Controller
                                 ->sum('paid_amount');
 
     return $this->success(
-            'تم جلب إحصائيات الفواتير بنجاح.'   , 
+            'تم جلب إحصائيات الفواتير بنجاح.'   ,
     [
         'total_revenue'          => $totalRevenue,
         'total_invoices'         => $totalInvoices,
@@ -113,7 +115,7 @@ class InvoiceController extends Controller
         'overdue_amount'         => $overdueAmount,
         'this_month_collect'     => $thisMonthCollect,
     ] );
-    
+
 }
 
     /**
@@ -127,6 +129,8 @@ class InvoiceController extends Controller
     // it returns a response with the created invoice data
     public function store(StoreInvoiceRequest $request)
     {
+        $this->authorize('create', Invoice::class);
+
         // 1. جلب الدين الحقيقي من قاعدة البيانات
         $charge = ConsumptionCharge::findOrFail(
             $request->consumption_charge_id
@@ -162,7 +166,7 @@ class InvoiceController extends Controller
                 $invoice = Invoice::create([
                     'consumption_charge_id' => $charge->id,
                     'customer_id' => $charge->customer_id,
-                    'accountant_id' => /*Auth::id()8*/ 1, // مؤقتاً، سيتم استبداله بـ Auth::id() بعد إضافة نظام تسجيل الدخول
+                    'accountant_id' => Auth::id(),
                     'outstanding_before_payment' => $charge->remaining_amount,
                     'paid_amount' => $request->paid_amount,
                     'remaining_balance' => $newRemainingBalance,
@@ -190,7 +194,7 @@ class InvoiceController extends Controller
                         'consumptionCharge'
                     ])
                 ),
-                
+
                 201
             );
         } catch (\Exception $e) {
@@ -200,7 +204,7 @@ class InvoiceController extends Controller
             );
         }
     }
-    
+
 
 
     /**
@@ -212,6 +216,8 @@ class InvoiceController extends Controller
     // it returns a response with the invoice data
     public function show(Invoice $invoice)
     {
+        $this->authorize('view', $invoice);
+
         $invoice->load([
             'customer',
             'accountant',
@@ -224,13 +230,15 @@ class InvoiceController extends Controller
         );
     }
 
-    
+
 
     /**
      * Update the specified resource in storage.
      */
     public function update(UpdateInvoiceRequest $request, Invoice $invoice)
     {
+        $this->authorize('update', $invoice);
+
         $invoice->update($request->validated());
 
         $invoice->load([
@@ -250,6 +258,8 @@ class InvoiceController extends Controller
      */
     public function destroy(Invoice $invoice)
     {
+        $this->authorize('delete', $invoice);
+
         $invoice->delete();
 
         return $this->success(
@@ -343,7 +353,7 @@ class InvoiceController extends Controller
             InvoiceResource::collection($payments)
         );
     }
-    
+
     public function exportExcel()
     {
         return Excel::download(

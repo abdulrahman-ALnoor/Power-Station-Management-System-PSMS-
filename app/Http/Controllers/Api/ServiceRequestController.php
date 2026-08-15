@@ -18,12 +18,29 @@ class ServiceRequestController extends Controller
     // Get all service requests
     public function index(Request $request)
     {
+        $this->authorize('viewAny', ServiceRequest::class);
+
+        $user = $request->user();
+
         $query = ServiceRequest::with([
             'meter',
             'customer',
             'creator',
             'assignedEngineer',
-        ])->where('assigned_engineer_id', $request->user()->id);
+        ]);
+
+        // فلترة على مستوى السجل حسب الدور (الأدمن يشوف الكل، Gate::before يتجاوز هذا الشرط أصلاً
+        // بس نحطه بالكنترولر لأن الفلترة مو Policy، هذا استعلام قاعدة بيانات)
+        if (! $user->hasRole('admin')) {
+            if ($user->hasRole('engineer')) {
+                // المهندس: بس الطلبات المسندة له
+                $query->where('assigned_engineer_id', $user->id);
+            } elseif ($user->hasRole('reader')) {
+                // القارئ: بس الطلبات اللي أنشأها هو
+                $query->where('created_by', $user->id);
+            }
+            // المحاسب: ما فيه شرط إضافي، يشوف كل الطلبات (حسب المستند)
+        }
 
         // فلترة حسب نوع الطلب
         if ($request->filled('request_type')) {
@@ -79,6 +96,8 @@ class ServiceRequestController extends Controller
     // Get service request by ID
     public function show(ServiceRequest $serviceRequest)
     {
+        $this->authorize('view', $serviceRequest);
+
         $serviceRequest->load([
             'meter',
             'customer',
@@ -152,6 +171,8 @@ class ServiceRequestController extends Controller
         UpdateServiceRequestRequest $request,
         ServiceRequest $serviceRequest
     ) {
+        $this->authorize('update', $serviceRequest);
+
         $data = $request->validated();
 
         $serviceRequest->update($data);
@@ -172,6 +193,8 @@ class ServiceRequestController extends Controller
     // Delete the specified service request from storage.
     public function destroy(ServiceRequest $serviceRequest)
     {
+        $this->authorize('delete', $serviceRequest);
+
         $serviceRequest->delete();
 
         return $this->success(
@@ -179,44 +202,98 @@ class ServiceRequestController extends Controller
         );
     }
 
-    // the function with out route
-    public function showByEngineer($engineerId)
+    // تغيير حالة الطلب فقط (مو تعديل كامل) — للمهندس على طلبه المسند له بس
+    public function changeStatus(Request $request, ServiceRequest $serviceRequest)
     {
-        $serviceRequests = ServiceRequest::with([
+        $this->authorize('update', $serviceRequest);
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:pending,in_progress,completed,rejected',
+        ]);
+
+        $serviceRequest->update(['status' => $validated['status']]);
+
+        $serviceRequest->load([
             'meter',
             'customer',
             'creator',
             'assignedEngineer',
-        ])
-            ->where('assigned_engineer_id', $engineerId)
-            ->latest()
-            ->get();
+        ]);
 
-        return response()->json($serviceRequests);
+        return $this->success(
+            'تم تحديث حالة الطلب بنجاح.',
+            new ServiceRequestResource($serviceRequest)
+        );
     }
+
+    // توجيه الطلب لمهندس معيّن — admin بس (الميدلوير يمنع أي دور ثاني من الوصول أصلاً)
+    public function assignEngineer(Request $request, ServiceRequest $serviceRequest)
+    {
+        $validated = $request->validate([
+            'assigned_engineer_id' => 'required|exists:users,id',
+        ]);
+
+        $serviceRequest->update([
+            'assigned_engineer_id' => $validated['assigned_engineer_id'],
+        ]);
+
+        $serviceRequest->load([
+            'meter',
+            'customer',
+            'creator',
+            'assignedEngineer',
+        ]);
+
+        return $this->success(
+            'تم توجيه الطلب للمهندس بنجاح.',
+            new ServiceRequestResource($serviceRequest)
+        );
+    }
+
+    // the function with out route
+  public function showByEngineer($engineerId)
+{
+    $serviceRequests = ServiceRequest::with([
+        'meter',
+        'customer',
+        'creator',
+        'assignedEngineer',
+    ])
+        ->where('assigned_engineer_id', $engineerId)
+        ->latest()
+        ->get();
+
+    return $this->success(
+        'تم جلب طلبات الصيانة المسندة بنجاح.',
+        ServiceRequestResource::collection($serviceRequests)
+    );
+}
 
     // 3- إضافة طلب خدمة أو صيانة جديد بواسطة القارئ (بحالة معلقة تتطلب موافقة الأدمن)
     public function storeByReader(Request $request)
     {
         $request->validate([
-            'equipment_id' => 'required|exists:equipment,id',
-            'meter_id'     => 'required|exists:meters,id',
-            'request_type' => 'required|string',
-            'description'  => 'required|string',
+            'meter_id' => 'required|exists:meters,id',
+            'customer_id' => 'required|exists:customers,id',
+            'request_type' => 'required|in:new_connection,maintenance,disconnection',
+            'description' => 'nullable|string',
         ]);
-
-        // جلب العداد المرتبط لمعرفة العميل التابع له تلقائياً
-        $meter = Meter::find($request->meter_id);
 
         $serviceRequest = ServiceRequest::create([
-            'created_by'   => $request->user()->id,
-            'meter_id'     => $request->meter_id,
-            'customer_id'  => $meter ? $meter->customer_id : null,
+            'created_by' => $request->user()->id,
+            'meter_id' => $request->meter_id,
+            'customer_id' => $request->customer_id,
             'request_type' => $request->request_type,
-            'description'  => $request->description . ' (رقم المعدة: ' . $request->equipment_id . ')',
-            'status'       => 'pending',
+            'description' => $request->description,
+            'status' => 'pending', // بانتظار موافقة الإدارة (حسب متطلبات القارئ بالمستند)
         ]);
 
-        return $this->success('تم تقديم طلب الخدمة بنجاح وهو بانتظار موافقة الإدارة.', $serviceRequest, 201);
+        $serviceRequest->load(['meter', 'customer', 'creator']);
+
+        return $this->success(
+            'تم تقديم طلب الخدمة بنجاح وهو بانتظار موافقة الإدارة.',
+            new ServiceRequestResource($serviceRequest),
+            201
+        );
     }
 }

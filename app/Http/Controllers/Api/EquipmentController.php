@@ -7,6 +7,7 @@ use App\Models\Equipment;
 use Illuminate\Http\Request;
 use App\Http\Requests\Equipment\StoreEquipmentRequest;
 use App\Http\Requests\Equipment\UpdateEquipmentRequest;
+use App\Http\Requests\Equipment\DescribeEquipmentRequest;
 use App\Http\Resources\Equipment\EquipmentResource;
 use App\Traits\ApiResponse;
 
@@ -53,8 +54,18 @@ class EquipmentController extends Controller
     // use the with() method to eager load the related models
     public function index(Request $request)
     {
-        $query = Equipment::with(['user', 'creator'])
-            ->where('user_id', $request->user()->id);
+        $this->authorize('viewAny', Equipment::class);
+
+        $user = $request->user();
+
+        $query = Equipment::with(['user', 'creator']);
+
+        // فلترة على مستوى السجل حسب الدور (الأدمن يشوف كل المعدات،
+        // Gate::before يتجاوز الشرط أصلاً، بس نحطه هنا لأنه فلترة استعلام مو Policy)
+        if (! $user->hasRole('admin')) {
+            // المهندس والقارئ: بس المعدات المرتبطة فيهم (user_id)
+            $query->where('user_id', $user->id);
+        }
 
         // بحث باسم المعدة أو رقمها التسلسلي
         if ($request->filled('search')) {
@@ -97,6 +108,8 @@ class EquipmentController extends Controller
     // Display the specified equipment.
     public function show(Equipment $equipment)
     {
+        $this->authorize('view', $equipment);
+
         $equipment->load([
             'user',
             'creator',
@@ -113,6 +126,8 @@ class EquipmentController extends Controller
         UpdateEquipmentRequest $request,
         Equipment $equipment
     ) {
+        $this->authorize('update', $equipment);
+
         $data = $request->validated();
 
         $equipment->update($data);
@@ -131,10 +146,32 @@ class EquipmentController extends Controller
     // Remove the specified equipment from storage.
     public function destroy(Equipment $equipment)
     {
+        $this->authorize('delete', $equipment);
+
         $equipment->delete();
 
         return $this->success(
             'Equipment deleted successfully.'
+        );
+    }
+
+    // 3- إضافة/تعديل وصف (notes) للمعدة الخاصة بالمهندس أو القارئ بس (RU محدود)
+    // حسب المستند: ما يقدر يغيّر باقي بيانات المعدة (الاسم، الحالة، ...) من هنا،
+    // بس الوصف — والـ Policy تتأكد إنها معدته هو بالذات.
+    public function describe(DescribeEquipmentRequest $request, Equipment $equipment)
+    {
+        $this->authorize('describe', $equipment);
+
+        $equipment->update($request->validated());
+
+        $equipment->load([
+            'user',
+            'creator',
+        ]);
+
+        return $this->success(
+            'تم تحديث وصف المعدة بنجاح.',
+            new EquipmentResource($equipment)
         );
     }
 

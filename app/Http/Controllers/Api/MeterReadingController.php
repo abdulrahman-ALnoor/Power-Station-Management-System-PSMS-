@@ -25,7 +25,14 @@ class MeterReadingController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', MeterReading::class);
+
         $query = MeterReading::query();
+
+        // القارئ يشوف بس القراءات اللي أنشأها هو (Gate::before يتجاوز هذا للأدمن)
+        if ($request->user()->hasRole('reader')) {
+            $query->where('created_by', $request->user()->id);
+        }
 
         // 1. البحث (رقم العداد أو اسم العميل)
         if ($request->filled('search')) {
@@ -143,17 +150,17 @@ class MeterReadingController extends Controller
             $reading = DB::transaction(function() use ($request){
                 $validated = $request->validated();
                 $companyProfile = CompanyProfile::first();
-                
+
                 if(!$companyProfile){
                     throw new \Exception('لم يتم إعداد بيانات الشركة بعد. يرجى إعدادها قبل إضافة قراءة العداد.');
                 }
-                
+
                 $lastReading = MeterReading::where('meter_id', $validated['meter_id'])
                     ->latest('reading_date')
                     ->latest('id')
                     ->first();
                 $previousReading = $lastReading?->current_reading ?? 0;
-                
+
                 if ($validated['current_reading'] < $previousReading) {
                     throw new \Exception('Current reading cannot be less than previous reading.');
                 }
@@ -161,7 +168,7 @@ class MeterReadingController extends Controller
                 $pricePerKwh = $companyProfile->price_per_kwh;
                 $consumption = $validated['current_reading'] - $previousReading;
                 $readingCost = $consumption * $pricePerKwh;
-                
+
                 $reading = MeterReading::create([
                     'meter_id' => $validated['meter_id'],
                     'previous_reading' => $previousReading,
@@ -187,7 +194,7 @@ class MeterReadingController extends Controller
                     'remaining_amount' => $readingCost,
                     'status' => 'pending',
                 ]);
-                
+
                 return $reading;
             });
             
@@ -214,6 +221,8 @@ class MeterReadingController extends Controller
      */
     public function show(MeterReading $meterReading)
     {
+        $this->authorize('view', $meterReading);
+
         $meterReading->load(['meter.customer', 'creator', 'consumptionCharge']);
         return $this->success('تم جلب قراءة العداد بنجاح.', new MeterReadingResource($meterReading));
     }
@@ -223,26 +232,28 @@ class MeterReadingController extends Controller
      */
     public function update(UpdateMeterReadingRequest $request, MeterReading $meterReading)
     {
+        $this->authorize('update', $meterReading);
+
         try {
             $validated = $request->validated();
             $companyProfile = CompanyProfile::first();
-            
+
             if(!$companyProfile){
                 throw new \Exception('لم يتم إعداد بيانات الشركة بعد. يرجى إعدادها قبل إضافة قراءة العداد.');
             }
-            
+
             $lastReading = MeterReading::where('meter_id', $meterReading->meter_id)
                 ->latest('reading_date')
                 ->latest('id')
                 ->first();
-                
+
             if ($meterReading->id !== $lastReading->id) {
                 return $this->error(
                     'لا يمكن تعديل هذه القراءة لأنها ليست آخر قراءة لهذا العداد.',
                     422
                 );
             }
-            
+
             $hasInvoice = $meterReading->consumptionCharge()->whereHas('invoice')->exists();
 
             if ($hasInvoice) {
@@ -272,7 +283,7 @@ class MeterReadingController extends Controller
                 'status' => $validated['status'] ?? $meterReading->status,
                 'notes' => $validated['notes'] ?? $meterReading->notes,
             ]);
-            
+
             ConsumptionCharge::where('meter_reading_id', $meterReading->id)->update([
                 'total_amount' => $readingCost,
                 'remaining_amount' => $readingCost - ConsumptionCharge::where('meter_reading_id', $meterReading->id)->value('paid_amount'),
@@ -290,6 +301,8 @@ class MeterReadingController extends Controller
      */
     public function destroy(MeterReading $meterReading)
     {
+        $this->authorize('delete', $meterReading);
+
         try {
             $meterReading->delete();
             return $this->success('تم حذف قراءة العداد بنجاح.');
@@ -330,8 +343,8 @@ class MeterReadingController extends Controller
             ->distinct('meter_id')
             ->count('meter_id');
 
-        $percentage = $assignedMetersCount > 0 
-            ? round(($readMetersCount / $assignedMetersCount) * 100, 2) 
+        $percentage = $assignedMetersCount > 0
+            ? round(($readMetersCount / $assignedMetersCount) * 100, 2)
             : 0;
 
         return $this->success('تم جلب نسبة تقدم القراءات بنجاح.', [
@@ -366,7 +379,7 @@ class MeterReadingController extends Controller
 
         return $this->success('تم جلب أحدث القراءات بنجاح.', MeterReadingResource::collection($latestReadings));
     }
-    
+
     public function readerIndex(Request $request)
     {
         $userId = $request->user()->id;
