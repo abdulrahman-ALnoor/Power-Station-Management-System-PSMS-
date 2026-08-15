@@ -11,14 +11,16 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        // 1. التحقق من المدخلات (مطابقة للواجهة: اسم المستخدم وكلمة المرور)
+        // 1. التحقق من المدخلات (البريد الإلكتروني وكلمة المرور)
+        // ملاحظة: تم التعديل من username إلى email لأن عمود username
+        // غير موجود أصلاً بجدول users (فيه فقط email)
         $request->validate([
-            'username' => 'required|string',
+            'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
 
-        // 2. البحث عن القارئ في قاعدة البيانات
-        $user = User::where('username', $request->username)->first();
+        // 2. البحث عن المستخدم في قاعدة البيانات
+        $user = User::where('email', $request->email)->first();
 
         // 3. التحقق من صحة البيانات
         if (!$user || !Hash::check($request->password, $user->password)) {
@@ -39,7 +41,7 @@ class AuthController extends Controller
                 'reader_info' => [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'username' => $user->username,
+                    'email' => $user->email,
                 ],
                 'token' => $token
             ]

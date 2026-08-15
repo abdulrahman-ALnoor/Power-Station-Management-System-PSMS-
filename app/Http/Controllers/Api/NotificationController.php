@@ -108,18 +108,21 @@ class NotificationController extends Controller
 
 
     // Get notifications by customer
-    // 
-    public function showByCustomer($customerId)
-    {
-        $notifications = Notification::with([
-            'customer',
-            'meterReading',
-            'invoice',
-        ])
-            ->where('customer_id', $customerId)
-            ->latest()
-            ->get();
+    //
+  public function showByCustomer($customerId)
+{
+    $notifications = Notification::with([
+        'customer',
+        'meterReading',
+        'invoice',
+    ])
+        ->where('customer_id', $customerId)
+        ->latest()
+        ->get();
 
-        return response()->json($notifications);
-    }
+    return $this->success(
+        'Notifications retrieved successfully.',
+        NotificationResource::collection($notifications)
+    );
+}
 }
