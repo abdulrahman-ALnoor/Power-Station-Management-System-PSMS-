@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ServiceRequest;
+use App\Models\Meter;
 use Illuminate\Http\Request;
 use App\Http\Requests\ServiceRequest\StoreServiceRequestRequest;
 use App\Http\Requests\ServiceRequest\UpdateServiceRequestRequest;
@@ -199,18 +200,21 @@ class ServiceRequestController extends Controller
     {
         $request->validate([
             'equipment_id' => 'required|exists:equipment,id',
-            'type' => 'required|string',
-            'description' => 'required|string',
+            'meter_id'     => 'required|exists:meters,id',
+            'request_type' => 'required|string',
+            'description'  => 'required|string',
         ]);
 
-        $userId = $request->user()->id;
+        // جلب العداد المرتبط لمعرفة العميل التابع له تلقائياً
+        $meter = Meter::find($request->meter_id);
 
         $serviceRequest = ServiceRequest::create([
-            'user_id' => $userId,
-            'equipment_id' => $request->equipment_id,
-            'type' => $request->type,
-            'description' => $request->description,
-            'status' => 'pending',
+            'created_by'   => $request->user()->id,
+            'meter_id'     => $request->meter_id,
+            'customer_id'  => $meter ? $meter->customer_id : null,
+            'request_type' => $request->request_type,
+            'description'  => $request->description . ' (رقم المعدة: ' . $request->equipment_id . ')',
+            'status'       => 'pending',
         ]);
 
         return $this->success('تم تقديم طلب الخدمة بنجاح وهو بانتظار موافقة الإدارة.', $serviceRequest, 201);

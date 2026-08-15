@@ -22,6 +22,7 @@ class ServiceRequest extends Model
         'status',
         'description',
         'completed_at',
+        'equipment_id',
     ];
 
     protected function casts(): array
