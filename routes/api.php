@@ -1,14 +1,16 @@
 <?php
 
+use App\Http\Controllers\Api\MeterReadingController;
+use App\Http\Controllers\Api\EquipmentController;
+use App\Http\Controllers\Api\ServiceRequestController;
+use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\ConsumptionChargeController;
 use App\Http\Controllers\Api\MeterController;
 use App\Http\Controllers\Api\CompanyProfileController;
-use App\Http\Controllers\Api\EquipmentController;
-use App\Http\Controllers\Api\InvoiceController;
-use App\Http\Controllers\Api\MeterReadingController;
 use App\Http\Controllers\Api\NotificationController;
 //use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ServiceRequestController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CustomerController;
@@ -17,7 +19,6 @@ use Illuminate\Http\Request;
 
 // مسار تسجيل الدخول (غير محمي)
 Route::post('/login', [AuthController::class, 'login']);
-
 
 // جميع المسارات داخل هذه المجموعة تتطلب توكن (محمية بـ Middleware)
 Route::middleware('auth:sanctum')->group(function () {
@@ -42,7 +43,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // 2. مسارات الواجهة الثانية (قراءات القارئ والفلترة)
     // ==========================================
     Route::get('/reader/readings', [MeterReadingController::class, 'readerIndex']);
-    // دالة إحصائيات القراءات (إن أردت إضافتها لاحقاً كملخص للواجهة الثانية)
     Route::get('/reader/readings/stats', [MeterReadingController::class, 'readerReadingsStats']);
 
     // ==========================================
@@ -52,11 +52,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reader/equipment', [EquipmentController::class, 'myEquipmentList']);
     Route::post('/reader/service-requests', [ServiceRequestController::class, 'storeByReader']);
 
+    // ==========================================
+    // 4. مسارات الدفع وإصدار الفواتير (صلاحيات القارئ)
+    // ==========================================
+    Route::get('/reader/invoices', [InvoiceController::class, 'readerIndex']); // عرض الفواتير
+    Route::post('/reader/invoices', [InvoiceController::class, 'store']); // إصدار فواتير الدفع
+
 });
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
-
+    Route::get('/invoices/stats', [MeterReadingController::class, 'stats']);
+    Route::get('/customers/{customerId}/invoices',[InvoiceController::class, 'customerInvoices']);
+    Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'exportPdf']);
+    
    /// Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
     Route::get('/invoices/monthly-revenue', [InvoiceController::class, 'monthlyRevenue']);
 
@@ -145,7 +154,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 });
 
-
 /*
 | User Routes
 |--------------------------------------------------------------------------
@@ -158,6 +166,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/users/stats', [UserController::class, 'stats']);
+Route::resource('users', UserController::class)->only(['index', 'show']);
 
     // Route::get('/users/role/{role}', [UserController::class, 'showByRole']);
 
@@ -173,6 +182,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::resource('users', UserController::class)
         ->middleware('permission:users.update')
         ->only(['update']);
+// =========================================================================
+// مسارات الإحصائيات والدوال الخاصة ( لمنع التعارض)
+// =========================================================================
+Route::get('customers/stats', [CustomerController::class, 'stats']);
+Route::get('company-profiles/stats', [CompanyProfileController::class, 'stats']);
 
     Route::resource('users', UserController::class)
         ->middleware('permission:users.delete')
@@ -207,6 +221,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('consumption-charges', ConsumptionChargeController::class)
         ->middleware('permission:consumption-charges.delete')
         ->only(['destroy']);
+Route::get('/invoices/stats', [InvoiceController::class, 'stats']);
 
     // مسار تفاصيل العميل المطابق للواجهة
     Route::get('/customers/{id}/details', [CustomerController::class, 'customerDetails']);
@@ -271,3 +286,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+Route::middleware('auth:sanctum')->group(function () {
+    // المسار الجديد لقائمة القراءات الخاصة بالقارئ
+    Route::get('/reader/index', [MeterReadingController::class, 'readerIndex']);
+});
+
+//require __DIR__.'/auth.php';

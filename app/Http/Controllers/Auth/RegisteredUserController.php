@@ -42,12 +42,13 @@ class RegisteredUserController extends Controller
         Auth::login($user);
         $token = $user->createToken('auth-token')->plainTextToken;
 
-return $this->success(
-    'User registered successfully',
-    [
-        'user' => $user,
-        'token' => $token,
-    ]
-);
+
+        return $this->success(
+            'User registered successfully',
+            [
+                'user' => $user,
+                'token' => $token,
+            ]
+        );
     }
 }

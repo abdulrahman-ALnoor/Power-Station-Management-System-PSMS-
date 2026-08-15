@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ServiceRequest;
+use App\Models\Meter;
 use Illuminate\Http\Request;
 use App\Http\Requests\ServiceRequest\StoreServiceRequestRequest;
 use App\Http\Requests\ServiceRequest\UpdateServiceRequestRequest;
