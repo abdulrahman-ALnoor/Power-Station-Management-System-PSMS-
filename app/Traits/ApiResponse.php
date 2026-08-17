@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+ use App\Traits\ApiResponse;
 
 trait ApiResponse
 {

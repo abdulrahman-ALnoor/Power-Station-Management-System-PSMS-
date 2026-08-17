@@ -98,7 +98,10 @@ class InvoiceController extends Controller
     $partiallyPaidInvoicesCount = Invoice::where('status', 'partially_paid')->count();
 
     // 5. المبالغ المتبقية غير المحصلة (المتأخرات/المتبقي)
-    $overdueAmount = Invoice::sum('remaining_balance');
+    // مهم: نجمع من consumption_charges.remaining_amount (الرصيد الحالي الفعلي لكل دين)،
+    // وليس من invoices.remaining_balance (التي تمثل لقطة تاريخية وقت كل دفعة بالذات).
+    // جمع remaining_balance من الفواتير يضاعف المتأخرات وهمياً لأي عميل دفع على دفعات.
+    $overdueAmount = ConsumptionCharge::sum('remaining_amount');
 
     // 6. تحصيلات هذا الشهر الفعلية
     $thisMonthCollect = Invoice::whereMonth('created_at', now()->month)
@@ -302,10 +305,10 @@ class InvoiceController extends Controller
                 'pdf_path' => $path,
                 'pdf_url' => Storage::disk('public')->url($path),
             ]
-            
+
         );
     }
-    
+
     public function customerInvoices($customerId)
         {
             $invoices = Invoice::with([

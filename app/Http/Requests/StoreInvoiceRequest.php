@@ -23,7 +23,7 @@ class StoreInvoiceRequest extends FormRequest
     {
         return [
             'consumption_charge_id' => ['required', 'exists:consumption_charges,id'],
-            'paid_amount'                => ['required', 'numeric', 'min:0'],
+            'paid_amount'                => ['required', 'numeric', 'min:0.01'],
             'payment_notes'              => ['nullable', 'string', 'max:1000'],
         ];
     }
