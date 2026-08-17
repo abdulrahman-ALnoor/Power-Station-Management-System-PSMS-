@@ -28,9 +28,9 @@ class MeterFactory extends Factory
                 'damaged',
             ]),
 
-            'installed_by' => User::factory(),
+            'installed_by' => \App\Models\User::inRandomOrder()->first()->id,
 
-            'created_by' => User::factory(),
+            'created_by' => \App\Models\User::inRandomOrder()->first()->id,
         ];
     }
 }

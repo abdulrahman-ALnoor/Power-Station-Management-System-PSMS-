@@ -77,4 +77,9 @@ class Meter extends Model
     {
         return $this->hasMany(ServiceRequest::class);
     }
+
+    protected static function booted()
+{
+    static::observe(\App\Observers\MeterObserver::class);
+}
 }

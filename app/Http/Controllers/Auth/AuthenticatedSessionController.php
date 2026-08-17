@@ -3,12 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
-use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -18,22 +14,20 @@ class AuthenticatedSessionController extends Controller
      */
     // tokens authentication
     public function store(LoginRequest $request): JsonResponse
-    {
+{
+    $request->authenticate();
 
-        $request->authenticate();
-        $user = $request->user();
+    $user = $request->user();
 
-        
+    $token = $user->createToken('auth-token')->plainTextToken;
 
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return $this->successResponse([
-            'data' => [
+        return $this->success(
+            'Logged in successfully',
+            [
                 'user' => $user,
                 'token' => $token,
-            ],
-            'message' => 'Logged in successfully',
-        ]);
+            ]
+        );
     }
 
     /**
@@ -43,10 +37,8 @@ class AuthenticatedSessionController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        
 
-        return $this->successResponse([
-            'message' => 'Logged out successfully',
-        ]);
+
+        return $this->success('Logged out successfully');
     }
 }

@@ -2,37 +2,49 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Requests\UpdateCompanyProfileRequest;
+use App\Http\Resources\CompanyProfileResource;
 use App\Models\CompanyProfile;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 
-
 class CompanyProfileController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    use ApiResponse;
+
+    public function stats()
+    {
+        $company = CompanyProfile::first();
+
+        $data = [
+            'company_name'       => $company?->company_name,
+            'price_per_kwh'      => $company?->price_per_kwh,
+            'currency'           => $company?->currency,
+            'reading_cycle_days' => $company?->reading_cycle_days,
+        ];
+
+        return $this->success('تم جلب إحصائيات الشركة بنجاح', $data, 200);
+    }
+
     public function index()
     {
-        $companyProfiles = CompanyProfile::get();
-        
-        return response()->json([
-            'status' => 'success', 
-            'data'   => $companyProfiles
-        ], 200);
+        $company = CompanyProfile::first();
+                if (!$company) {
+                    return $this->error('بيانات الشركة غير موجودة', 404);
+                }
+        return $this->success('تم جلب بيانات الشركة بنجاح', new CompanyProfileResource($company), 200);
     }
 
-    // عرض ملف شركة محدد برقم الـ ID بصيغة JSON
-    public function show(int $id)
+    public function update(UpdateCompanyProfileRequest $request)
     {
-        // البحث عن ملف الشركة، وإرجاع 404 إذا لم يوجد
-        $companyProfile = CompanyProfile::findOrFail($id);
-        
-        return response()->json([
-            'status' => 'success', 
-            'data'   => $companyProfile
-        ], 200);
-    }
+        $company = CompanyProfile::first();
 
+                if (!$company) {
+            return $this->error('بيانات الشركة غير موجودة', 404);
+        }
+        $company->update($request->validated());
 
+        return $this->success('تم تحديث بيانات الشركة بنجاح', new CompanyProfileResource($company), 200);
     }
+}
