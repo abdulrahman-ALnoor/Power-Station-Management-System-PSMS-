@@ -14,8 +14,31 @@ class ConsumptionChargeFactory extends Factory
 
     public function definition(): array
     {
-        $total = fake()->randomFloat(2, 1000, 50000);
-        $paid = fake()->randomFloat(2, 0, $total);
+        // النطاق يعكس فاتورة واقعية بالريال اليمني: استهلاك (10-500 ك.و) × سعر (170-400 ريال)
+        $total = fake()->randomFloat(2, 1500, 200000);
+
+        // توزيع واقعي لحالة السداد بدل عشوائية بحتة:
+        // 40% مدفوعة بالكامل، 45% جزئية، 15% لسا ما دفع فيها شي
+        // (هذا يعكس واقع أي شركة خدمات: أغلب العملاء يسددوا، فئة تقسّط، وفئة متأخرة)
+        $paymentType = fake()->randomElement([
+            'paid', 'paid', 'paid', 'paid',              // 40%
+            'partial', 'partial', 'partial', 'partial', 'partial', // 45% (تقريباً)
+            'unpaid', 'unpaid',                            // 15% تقريباً
+        ]);
+
+        $paid = match ($paymentType) {
+            'paid' => $total,
+            'partial' => fake()->randomFloat(2, 1, $total - 1),
+            'unpaid' => 0,
+        };
+
+        $status = match (true) {
+            $paid >= $total => 'paid',
+            $paid > 0 => 'partially_paid',
+            default => 'pending',
+        };
+
+        $chargeDate = fake()->dateTimeBetween('-18 months', 'now');
 
         return [
             'customer_id' => Customer::factory(),
@@ -30,11 +53,10 @@ class ConsumptionChargeFactory extends Factory
 
             'remaining_amount' => $total - $paid,
 
-            'status' => fake()->randomElement([
-                'pending',
-                'partially_paid',
-                'paid',
-            ]),
+            'status' => $status,
+
+            'created_at' => $chargeDate,
+            'updated_at' => $chargeDate,
         ];
     }
 }

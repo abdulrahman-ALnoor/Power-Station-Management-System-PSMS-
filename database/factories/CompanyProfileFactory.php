@@ -19,13 +19,13 @@ class CompanyProfileFactory extends Factory
 
             'support_number' => fake()->phoneNumber(),
 
-            'currency' => fake()->randomElement([
-                'YER',
-                'USD',
-                'SAR',
-            ]),
+            // ثابتة على الريال اليمني (كان عشوائي بين 3 عملات، يسبب أرقام غير متناسقة)
+            'currency' => 'YER',
 
-            'price_per_kwh' => fake()->randomFloat(2, 50, 500),
+            // سعر الكيلوواط الحقيقي باليمن يتراوح：
+            // 170-230 ريال (تعرفة حكومية مدعومة) إلى 500-1400 ريال (مولدات خاصة/تجارية)
+            // نستخدم متوسط واقعي يغطي الحالتين
+            'price_per_kwh' => fake()->randomFloat(2, 170, 400),
 
             'reading_cycle_days' => fake()->randomElement([
                 15,

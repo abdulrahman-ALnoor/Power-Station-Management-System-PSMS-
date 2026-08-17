@@ -2,17 +2,18 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\MeterReading;
+use App\Models\Meter;
 
 class MeterReadingSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        MeterReading::factory()->count(60)->create();
+        // recycle(): كل قراءة تُربط بعداد موجود فعلاً من MeterSeeder
+        MeterReading::factory()
+            ->recycle(Meter::all())
+            ->count(60)
+            ->create();
     }
 }

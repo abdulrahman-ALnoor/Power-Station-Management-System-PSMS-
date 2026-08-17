@@ -13,8 +13,13 @@ class MeterReadingFactory extends Factory
         $previous = fake()->randomFloat(2, 0, 10000);
         $consumption = fake()->randomFloat(2, 10, 500);
         $current = $previous + $consumption;
-        $price = fake()->randomFloat(2, 20, 100);
+        // سعر الكيلوواط بالريال اليمني (نفس نطاق CompanyProfileFactory عشان يتوافقوا منطقياً)
+        $price = fake()->randomFloat(2, 170, 400);
         $cost = $consumption * $price;
+
+        // تاريخ القراءة: موزّع على آخر 18 شهر بس (مو من 1970!)
+        // هذا يخلي البيانات تبدو واقعية لنظام حديث، ويسمح بتقارير شهرية منطقية
+        $readingDate = fake()->dateTimeBetween('-18 months', 'now');
 
         return [
             'created_by' => \App\Models\User::inRandomOrder()->first()->id,
@@ -31,7 +36,7 @@ class MeterReadingFactory extends Factory
 
             'reading_cost' => $cost,
 
-            'reading_date' => fake()->date(),
+            'reading_date' => $readingDate,
 
             'reading_method' => fake()->randomElement([
                 'manual',
@@ -45,6 +50,10 @@ class MeterReadingFactory extends Factory
             ]),
 
             'notes' => fake()->optional()->sentence(),
+
+            // نجعل created_at قريب من تاريخ القراءة نفسه (منطقي: القراءة تُسجَّل وقتها تقريباً)
+            'created_at' => $readingDate,
+            'updated_at' => $readingDate,
         ];
     }
 }
