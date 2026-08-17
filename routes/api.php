@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\ConsumptionChargeController;
 use App\Http\Controllers\Api\MeterController;
 use App\Http\Controllers\Api\CompanyProfileController;
+use App\Http\Controllers\Api\DashboardCo
 use App\Http\Controllers\Api\NotificationController;
 //use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ServiceRequestController;
@@ -286,8 +287,23 @@ Route::get('/invoices/stats', [InvoiceController::class, 'stats']);
 
     Route::get('/showByCustomer/{customerId}', [NotificationController::class, 'showByCustomer']);
 
-});
+Route::prefix('dashboard')->group(function () {
 
+    Route::get('/', [DashboardController::class, 'index']);
+
+    Route::get('/statistics', [DashboardController::class, 'getStatistics']);
+    Route::get('/monthly-revenue-chart', [DashboardController::class, 'monthlyRevenueChart']);
+
+    Route::get('/electricity-consumption-chart', [DashboardController::class, 'electricityConsumptionChart']);
+
+    Route::get('/equipment-status', [DashboardController::class, 'equipmentStatus']);
+
+    Route::get('/latest-readings', [DashboardController::class, 'latestReadings']);
+    Route::get('/latest-service-requests', [DashboardController::class, 'latestServiceRequests']);
+    Route::get('/latest-invoices', [DashboardController::class, 'latestInvoices']);
+
+
+});
 require __DIR__.'/auth.php';
 Route::middleware('auth:sanctum')->group(function () {
     // المسار الجديد لقائمة القراءات الخاصة بالقارئ
