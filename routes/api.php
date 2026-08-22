@@ -1,4 +1,5 @@
 <?php
+//use App\Http\Controllers\Auth\AuthController;
 
 use App\Http\Controllers\Api\MeterReadingController;
 use App\Http\Controllers\Api\EquipmentController;
@@ -7,12 +8,13 @@ use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\ConsumptionChargeController;
 use App\Http\Controllers\Api\MeterController;
 use App\Http\Controllers\Api\CompanyProfileController;
-use App\Http\Controllers\Api\DashboardCo
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\AuthController;
+
 use Illuminate\Http\Request;
 
 // مسار لتسجيل قراءة العداد عبر الـ QR Code
@@ -23,7 +25,6 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // جميع المسارات داخل هذه المجموعة تتطلب توكن (محمية بـ Middleware)
 Route::middleware('auth:sanctum')->group(function () {
-
     // مسار تجريبي للتأكد من عمل التوكن
     Route::get('/reader/profile', function (Request $request) {
         return response()->json([
@@ -31,6 +32,9 @@ Route::middleware('auth:sanctum')->group(function () {
             'data' => $request->user()
         ]);
     });
+
+    // بيانات المستخدم الحالي (دور + صلاحيات) — تُستخدم من الفرونت عند تحديث الصفحة
+    Route::get('/me', [AuthController::class, 'me']);
 
     // ==========================================
     // 1. مسارات الواجهة الأولى (لوحة القارئ الرئيسية)
@@ -75,12 +79,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/meter-readings/stats', [MeterReadingController::class, 'stats']);
 
     // ----- روابط ثابتة للفواتير (قبل apiResource) -----
-    Route::get('/customers/{customerId}/invoices', [InvoiceController::class, 'customerInvoices']);
-    Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'exportPdf']);
-    Route::get('/invoices/monthly-revenue', [InvoiceController::class, 'monthlyRevenue']);
-    Route::get('/invoices/latest-payments', [InvoiceController::class, 'latestPayments']);
-    Route::get('/invoices/export-excel', [InvoiceController::class, 'exportExcel']);
-    Route::get('/invoices/stats', [InvoiceController::class, 'stats']); // ← نُقل لهنا (كان السبب بمشكلة الـ 404)
+    // كل هالروابط تكشف بيانات مالية حساسة (إيرادات، فواتير، تصدير) —
+    // لازم صلاحية invoices.view، مو بس تسجيل دخول.
+    Route::middleware('permission:invoices.view')->group(function () {
+        Route::get('/customers/{customerId}/invoices', [InvoiceController::class, 'customerInvoices']);
+        Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'exportPdf']);
+    Route::get('/reports/revenue', [InvoiceController::class, 'revenueReport']);
+    Route::get('/reports/account-statement', [InvoiceController::class, 'accountStatement']);
+        Route::get('/invoices/monthly-revenue', [InvoiceController::class, 'monthlyRevenue']);
+        Route::get('/invoices/status-distribution', [InvoiceController::class, 'statusDistribution']);
+        Route::get('/invoices/overdue', [InvoiceController::class, 'overdueInvoices']);
+        Route::get( '/reports/collections',[InvoiceController::class, 'collectionsReport']);
+        Route::get('/invoices/latest-payments', [InvoiceController::class, 'latestPayments']);
+        Route::get('/invoices/export-excel', [InvoiceController::class, 'exportExcel']);
+        Route::get('/invoices/stats', [InvoiceController::class, 'stats']); // ← نُقل لهنا (كان السبب بمشكلة الـ 404)
+    });
 
     // ----- رابط ثابت للمعدات (قبل apiResource) -----
     Route::get('/equipments/stats', [EquipmentController::class, 'stats']);
@@ -176,6 +189,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // ----- رابط ثابت للمستخدمين (قبل resource) -----
     Route::get('/users/stats', [UserController::class, 'stats']);
+    Route::get('/users/by-role/{role}', [UserController::class, 'showByRole'])
+        ->middleware('permission:users.view');
 
     // ===== صلاحيات المستخدمين (Spatie) =====
     Route::resource('users', UserController::class)
@@ -271,7 +286,25 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ->middleware('permission:notifications.delete')
         ->only(['destroy']);
 
-    Route::get('/showByCustomer/{customerId}', [NotificationController::class, 'showByCustomer']);
+    Route::get('/showByCustomer/{customerId}', [NotificationController::class, 'showByCustomer'])
+        ->middleware('permission:notifications.view');
+
+    Route::prefix('dashboard')->group(function () {
+
+        Route::get('/', [DashboardController::class, 'index']);
+
+        Route::get('/statistics', [DashboardController::class, 'statistics']);
+        Route::get('/monthly-revenue-chart', [DashboardController::class, 'monthlyRevenueChart']);
+
+        Route::get('/electricity-consumption-chart', [DashboardController::class, 'electricityConsumptionChart']);
+
+        Route::get('/equipment-status', [DashboardController::class, 'equipmentStatus']);
+
+        Route::get('/latest-readings', [DashboardController::class, 'latestReadings']);
+        Route::get('/latest-service-requests', [DashboardController::class, 'latestServiceRequests']);
+        Route::get('/latest-invoices', [DashboardController::class, 'latestInvoices']);
+
+    });
 
 Route::prefix('dashboard')->group(function () {
 

@@ -74,24 +74,30 @@ class ServiceRequestController extends Controller
 
     // Store a newly created service request in storage.
     public function store(StoreServiceRequestRequest $request)
-    {
-        $serviceRequest = ServiceRequest::create(
-            $request->validated()
-        );
+{
+    $data = $request->validated();
 
-        $serviceRequest->load([
-            'meter',
-            'customer',
-            'creator',
-            'assignedEngineer',
-        ]);
+    // المستخدم الحالي هو منشئ طلب الخدمة
+    $data['created_by'] = $request->user()->id;
 
-        return $this->success(
-            'Service request created successfully.',
-            new ServiceRequestResource($serviceRequest),
-            201
-        );
-    }
+    // الطلب الجديد يبدأ بحالة معلقة
+    $data['status'] = $data['status'] ?? 'pending';
+
+    $serviceRequest = ServiceRequest::create($data);
+
+    $serviceRequest->load([
+        'meter',
+        'customer',
+        'creator',
+        'assignedEngineer',
+    ]);
+
+    return $this->success(
+        'تم إنشاء طلب الخدمة بنجاح.',
+        new ServiceRequestResource($serviceRequest),
+        201
+    );
+}
 
     // Get service request by ID
     public function show(ServiceRequest $serviceRequest)
@@ -164,6 +170,26 @@ class ServiceRequestController extends Controller
             ->get();
 
         return $this->success('تم جلب الأداء الشهري بنجاح.', $performance);
+    }
+
+    /**
+     * عدد الطلبات المسندة للمهندس الحالي حسب الحالة (لعرض تبويبات بأعداد بصفحة "طلباتي")
+     */
+    public function myRequestsStatus(Request $request)
+    {
+        $engineerId = $request->user()->id;
+
+        $counts = ServiceRequest::where('assigned_engineer_id', $engineerId)
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return $this->success('تم جلب حالة الطلبات بنجاح.', [
+            'pending'     => $counts['pending'] ?? 0,
+            'in_progress' => $counts['in_progress'] ?? 0,
+            'completed'   => $counts['completed'] ?? 0,
+            'rejected'    => $counts['rejected'] ?? 0,
+        ]);
     }
 
     // Update the specified service request in storage.

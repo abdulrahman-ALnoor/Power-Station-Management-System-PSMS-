@@ -72,9 +72,16 @@ class MeterReadingController extends Controller
             ->orderByDesc('id')
             ->paginate($request->get('per_page', 10));
 
+        // ملاحظة: نفس مشكلة MeterController — MeterReadingResource::collection() جوا
+        // success() بتفقد meta/links (total/last_page/current_page). نحافظ على كائن
+        // الـ paginator ونحوّل بس عناصره عبر MeterReadingResource.
+        $readings->getCollection()->transform(
+            fn ($reading) => (new MeterReadingResource($reading))->resolve()
+        );
+
         return $this->success(
             'تم جلب قراءات العدادات بنجاح.',
-            MeterReadingResource::collection($readings)
+            $readings
         );
     }
 
@@ -195,7 +202,7 @@ class MeterReadingController extends Controller
 
                 return $reading;
             });
-            
+
             return $this->success(
                 'تم تسجيل قراءة العداد بنجاح.',
                 new MeterReadingResource(
@@ -330,10 +337,10 @@ class MeterReadingController extends Controller
     public function readerReadingsProgress(Request $request)
     {
         $userId = $request->user()->id;
-        
+
         // تم التعديل هنا لاستخدام installed_by بدلاً من user_id
         $assignedMetersCount = Meter::where('installed_by', $userId)->count();
-        
+
         $readMetersCount = MeterReading::where('created_by', $userId)
             ->whereMonth('reading_date', now()->month)
             ->distinct('meter_id')

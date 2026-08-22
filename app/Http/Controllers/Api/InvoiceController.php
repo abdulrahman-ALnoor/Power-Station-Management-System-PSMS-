@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Api;
-
+use Mpdf\Mpdf;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInvoiceRequest;
 use App\Http\Requests\UpdateInvoiceRequest;
@@ -14,7 +14,7 @@ use App\Traits\ApiResponse;
 use App\Http\Resources\InvoiceResource;
 use App\Exports\InvoicesExport;
 use Maatwebsite\Excel\Facades\Excel;
-
+use App\Models\Customer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 
@@ -46,11 +46,9 @@ class InvoiceController extends Controller
         }
 
         // 2. الفلترة بحسب الحالة
-        if ($request->filled('status')) {
-            $query->whereHas('consumptionCharge', function ($qCharge) use ($request) {
-                $qCharge->where('status', $request->status);
-            });
-        }
+       if ($request->filled('status')) {
+    $query->where('status', $request->status);
+}
 
         // 3.  الفلترة بحسب الفترة (الشهر والسنة)
         $query
@@ -270,44 +268,51 @@ class InvoiceController extends Controller
             null
         );
     }
+
+
     public function exportPdf(Invoice $invoice)
-    {
-        $invoice->load([
-            'customer',
-            'accountant',
-            'consumptionCharge.meter',
-            'consumptionCharge.meterReading',
-        ]);
+{
+    $this->authorize('view', $invoice);
 
-        $pdf = Pdf::loadView(
-            'invoices.pdf',
-            compact('invoice')
-        );
+    $invoice->load([
+        'customer',
+        'accountant',
+        'consumptionCharge.meter',
+        'consumptionCharge.meterReading',
+    ]);
 
-        $fileName = $invoice->invoice_number . '.pdf';
+    $html = view(
+        'invoices.pdf',
+        compact('invoice')
+    )->render();
 
-        $path = 'invoices/' . $fileName;
+    $mpdf = new Mpdf([
+        'mode' => 'utf-8',
+        'format' => 'A4',
+        'orientation' => 'P',
+        'default_font' => 'dejavusans',
+        'default_font_size' => 12,
+        'margin_top' => 15,
+        'margin_bottom' => 15,
+        'margin_left' => 15,
+        'margin_right' => 15,
+    ]);
 
-        Storage::disk('public')->put(
-            $path,
-            $pdf->output()
-        );
+    $mpdf->SetDirectionality('rtl');
 
-        $invoice->update([
-            'pdf_path' => $path,
-        ]);
+    $mpdf->WriteHTML($html);
 
-        return $this->success(
-            'تم تصدير الفاتورة إلى PDF بنجاح.',
-            [
-                'invoice_id' => $invoice->id,
-                'invoice_number' => $invoice->invoice_number,
-                'pdf_path' => $path,
-                'pdf_url' => Storage::disk('public')->url($path),
-            ]
+    $fileName = 'invoice-' . $invoice->invoice_number . '.pdf';
 
-        );
-    }
+    return response(
+        $mpdf->Output($fileName, 'S'),
+        200,
+        [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]
+    );
+}
 
     public function customerInvoices($customerId)
         {
@@ -325,21 +330,42 @@ class InvoiceController extends Controller
                 InvoiceResource::collection($invoices)
             );
         }
-    public function monthlyRevenue()
-    {
-        $revenue = Invoice::query()
-            ->selectRaw('MONTH(created_at) as month')
-            ->selectRaw('SUM(paid_amount) as total_revenue')
-            ->whereYear('created_at', now()->year)
-            ->groupByRaw('MONTH(created_at)')
-            ->orderByRaw('MONTH(created_at)')
-            ->get();
+  public function monthlyRevenue()
+{
+    $data = Invoice::query()
+        ->selectRaw('MONTH(created_at) as month')
+        ->selectRaw('SUM(outstanding_before_payment) as invoices_amount')
+        ->selectRaw('SUM(paid_amount) as collections_amount')
+        ->whereYear('created_at', now()->year)
+        ->groupByRaw('MONTH(created_at)')
+        ->orderByRaw('MONTH(created_at)')
+        ->get();
 
-        return $this->success(
-            'تم جلب الإيرادات الشهرية بنجاح.',
-            $revenue
-        );
-    }
+    return $this->success(
+        'تم جلب بيانات الفواتير والتحصيلات الشهرية بنجاح.',
+        $data
+    );
+}
+
+public function statusDistribution()
+{
+    $data = Invoice::query()
+        ->selectRaw('status, COUNT(*) as total')
+        ->groupBy('status')
+        ->get()
+        ->map(function ($item) {
+            return [
+                'name' => $item->status,
+                'value' => (int) $item->total,
+            ];
+        });
+
+    return $this->success(
+        'تم جلب توزيع حالات الفواتير بنجاح.',
+        $data
+    );
+}
+
 
     public function latestPayments()
     {
@@ -364,6 +390,265 @@ class InvoiceController extends Controller
             'invoices.xlsx'
         );
     }
+
+    /**
+     * عرض الفواتير اللي أصدرها القارئ/المحاسب الحالي بنفسه (لصفحة "فواتيري" بواجهة القارئ)
+     */
+    public function readerIndex(Request $request)
+    {
+        $invoices = Invoice::with([
+            'customer',
+            'accountant',
+            'consumptionCharge',
+        ])
+            ->where('accountant_id', $request->user()->id)
+            ->latest('created_at')
+            ->paginate($request->get('per_page', 10));
+
+        return $this->success(
+            'تم جلب الفواتير الصادرة منك بنجاح.',
+            InvoiceResource::collection($invoices)
+        );
+    }
+
+
+    public function revenueReport()
+{
+    $invoices = Invoice::query();
+
+    $totalInvoices = (clone $invoices)->sum(
+        'outstanding_before_payment'
+    );
+
+    $totalCollected = (clone $invoices)->sum(
+        'paid_amount'
+    );
+
+    $totalRemaining = (clone $invoices)->sum(
+        'remaining_balance'
+    );
+
+    $totalInvoicesCount = (clone $invoices)->count();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'تم جلب تقرير الإيرادات بنجاح',
+        'data' => [
+            'total_invoices' => (float) $totalInvoices,
+            'total_collected' => (float) $totalCollected,
+            'total_remaining' => (float) $totalRemaining,
+            'total_invoices_count' => $totalInvoicesCount,
+        ],
+    ]);
+}public function overdueInvoices(Request $request)
+{
+    $search = $request->input('search');
+
+    $invoices = Invoice::with([
+        'customer',
+        'consumptionCharge',
+    ])
+        ->where('remaining_balance', '>', 0)
+
+        ->when($search, function ($query, $search) {
+            $query->where(function ($query) use ($search) {
+
+                // البحث برقم الفاتورة
+                $query->where(
+                    'invoice_number',
+                    'like',
+                    "%{$search}%"
+                )
+
+                // أو البحث باسم العميل
+                ->orWhereHas(
+                    'customer',
+                    function ($customerQuery) use ($search) {
+                        $customerQuery->where(
+                            'full_name',
+                            'like',
+                            "%{$search}%"
+                        );
+                    }
+                );
+            });
+        })
+
+        ->latest()
+
+        ->paginate(
+            $request->input('per_page', 10)
+        );
+
+    return response()->json([
+        'success' => true,
+        'data' => $invoices,
+    ]);
 }
 
 
+public function collectionsReport(Request $request)
+{
+   $query = Invoice::with([
+    'customer:id,full_name',
+])
+        ->where('paid_amount', '>', 0);
+
+    /*
+    |--------------------------------------------------------------------------
+    | البحث
+    |--------------------------------------------------------------------------
+    */
+    if ($request->filled('search')) {
+        $search = $request->search;
+
+        $query->where(function ($query) use ($search) {
+            $query->where(
+                'invoice_number',
+                'like',
+                "%{$search}%"
+            )
+            ->orWhereHas(
+                'customer',
+                function ($customerQuery) use ($search) {
+                    $customerQuery->where(
+    'full_name',
+    'like',
+    "%{$search}%"
+);
+                }
+            );
+        });
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ترتيب التحصيلات من الأحدث إلى الأقدم
+    |--------------------------------------------------------------------------
+    */
+    $collections = $query
+        ->latest()
+        ->paginate(
+            $request->input(
+                'per_page',
+                20
+            )
+        );
+
+    /*
+    |--------------------------------------------------------------------------
+    | الإحصائيات
+    |--------------------------------------------------------------------------
+    */
+    $totalCollected = Invoice::where(
+        'paid_amount',
+        '>',
+        0
+    )->sum('paid_amount');
+
+    $collectionsCount = Invoice::where(
+        'paid_amount',
+        '>',
+        0
+    )->count();
+
+    $fullyPaidCount = Invoice::where(
+        'status',
+        'paid'
+    )->count();
+
+    $partiallyPaidCount = Invoice::where(
+        'status',
+        'partially_paid'
+    )->count();
+
+    return response()->json([
+        'success' => true,
+
+        'data' => [
+            'collections' => $collections,
+
+            'stats' => [
+                'total_collected' => $totalCollected,
+
+                'collections_count' => $collectionsCount,
+
+                'fully_paid_count' => $fullyPaidCount,
+
+                'partially_paid_count' => $partiallyPaidCount,
+            ],
+        ],
+    ]);
+}
+public function accountStatement(Request $request)
+{
+    $request->validate([
+        'customer_id' => [
+            'required',
+            'exists:customers,id',
+        ],
+    ]);
+
+    $customerId = $request->input('customer_id');
+
+    // العميل
+    $customer = Customer::findOrFail($customerId);
+
+    // فواتير العميل
+    $invoicesQuery = Invoice::with([
+        'customer:id,full_name',
+        'consumptionCharge:id,total_amount',
+    ])
+        ->where('customer_id', $customerId)
+        ->latest();
+
+    $invoices = $invoicesQuery->paginate(
+        $request->input('per_page', 20),
+    );
+
+    // إجمالي قيمة الفواتير
+    $totalInvoices = Invoice::where(
+        'customer_id',
+        $customerId,
+    )
+        ->with('consumptionCharge')
+        ->get()
+        ->sum(function ($invoice) {
+            return (float) (
+                $invoice->consumptionCharge
+                    ?->total_amount ?? 0
+            );
+        });
+
+    // إجمالي المدفوع
+    $totalPaid = Invoice::where(
+        'customer_id',
+        $customerId,
+    )->sum('paid_amount');
+
+    // إجمالي المتبقي
+    $totalRemaining = Invoice::where(
+        'customer_id',
+        $customerId,
+    )->sum('remaining_balance');
+
+    return response()->json([
+        'success' => true,
+
+        'data' => [
+            'customer' => [
+                'id' => $customer->id,
+                'name' => $customer->full_name,
+            ],
+
+            'invoices' => $invoices,
+
+            'summary' => [
+                'total_invoices' => $totalInvoices,
+                'total_paid' => $totalPaid,
+                'total_remaining' => $totalRemaining,
+            ],
+        ],
+    ]);
+}
+}

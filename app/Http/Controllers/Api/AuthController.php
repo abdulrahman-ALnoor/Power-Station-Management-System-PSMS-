@@ -8,9 +8,12 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
+
 {
+
     public function login(Request $request)
     {
+
         // 1. التحقق من المدخلات
         $request->validate([
             'email' => 'required|email',
@@ -39,7 +42,7 @@ class AuthController extends Controller
         // 5. إنشاء التوكن (Token) بنجاح
         $token = $user->createToken('ReaderAccess')->plainTextToken;
 
-        // 6. إرجاع الاستجابة المطلوبة
+        // 6. إرجاع الاستجابة المطلوبة (مع الدور والصلاحيات لأجل الفرونت)
         return response()->json([
             'success' => true,
             'message' => 'تم تسجيل الدخول بنجاح.',
@@ -48,9 +51,33 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'role' => $user->getRoleNames()->first(),
+                    'permissions' => $user->getAllPermissions()->pluck('name'),
                 ],
                 'token' => $token
             ]
         ], 200);
     }
+
+    /**
+     * إرجاع بيانات المستخدم الحالي (يُستخدم عند تحديث الصفحة للتحقق من صلاحية التوكن)
+     */
+    public function me(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'success' => true,
+            'message' => null,
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->getRoleNames()->first(),
+                'permissions' => $user->getAllPermissions()->pluck('name'),
+            ],
+        ], 200);
+    }
+
+
 }

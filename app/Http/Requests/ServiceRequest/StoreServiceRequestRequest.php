@@ -20,7 +20,7 @@ class StoreServiceRequestRequest extends FormRequest
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
 
-    
+
     public function rules(): array
     {
         return [
@@ -34,10 +34,6 @@ class StoreServiceRequestRequest extends FormRequest
                 'exists:customers,id',
             ],
 
-            'created_by' => [
-                'required',
-                'exists:users,id',
-            ],
 
             'assigned_engineer_id' => [
                 'nullable',
