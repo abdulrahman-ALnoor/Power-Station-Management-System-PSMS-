@@ -306,6 +306,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     });
 
-});
+Route::prefix('dashboard')->group(function () {
 
+    Route::get('/', [DashboardController::class, 'index']);
+
+    Route::get('/statistics', [DashboardController::class, 'getStatistics']);
+    Route::get('/monthly-revenue-chart', [DashboardController::class, 'monthlyRevenueChart']);
+
+    Route::get('/electricity-consumption-chart', [DashboardController::class, 'electricityConsumptionChart']);
+
+    Route::get('/equipment-status', [DashboardController::class, 'equipmentStatus']);
+
+    Route::get('/latest-readings', [DashboardController::class, 'latestReadings']);
+    Route::get('/latest-service-requests', [DashboardController::class, 'latestServiceRequests']);
+    Route::get('/latest-invoices', [DashboardController::class, 'latestInvoices']);
+
+
+});
 require __DIR__.'/auth.php';
