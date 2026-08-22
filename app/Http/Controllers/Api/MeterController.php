@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 // المكتبات الجديدة المضافة للـ QR والـ Storage
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Str;
 class MeterController extends Controller
 {
     use ApiResponse;
@@ -52,7 +52,19 @@ class MeterController extends Controller
 
             $meters = $query->latest()->paginate(10);
 
-            return $this->success('تم جلب العدادات بنجاح.', MeterResource::collection($meters));
+            // ملاحظة: لا نستخدم MeterResource::collection($meters) مباشرة هنا، لأنها
+            // بترجع AnonymousResourceCollection، وبما إنها ملفوفة جوا success() بدل
+            // ما تترجع من الراوت مباشرة، Laravel ما بيضيف meta/links تلقائياً
+            // (هاي الإضافة بتصير بس جوا toResponse()). النتيجة: data كانت بترجع
+            // مصفوفة عدادات فلات بدون total/last_page/current_page، فيصير
+            // الترقيم بالفرونت اند مستحيل. الحل: نحافظ على كائن الـ paginator
+            // نفسه (فيه كل الـ meta) ونحوّل بس العناصر جواه عبر MeterResource،
+            // بنفس الأسلوب المتبع بالضبط بـ UserController/EquipmentController.
+            $meters->getCollection()->transform(
+                fn ($meter) => (new MeterResource($meter))->resolve()
+            );
+
+            return $this->success('تم جلب العدادات بنجاح.', $meters);
 
         } catch (\Exception $e) {
             return $this->error('حدث خطأ أثناء جلب العدادات: ' . $e->getMessage());
@@ -66,8 +78,11 @@ class MeterController extends Controller
     public function store(StoreMeterRequest $request)
     {
         try {
-            // 1. إنشاء العداد من البيانات التي تم التحقق منها
-            $meter = Meter::create($request->validated());
+            // 1. قاعدة البيانات تتطلب قيمة qr_code عند الإنشاء، لذلك نضع قيمة مؤقتة فريدة.
+            // سيتم استبدالها بمسار ملف QR الحقيقي بعد توفر رقم العداد id.
+            $meterData = $request->validated();
+            $meterData['qr_code'] = 'pending-' . Str::uuid()->toString();
+            $meter = Meter::create($meterData);
 
             // 2. الرابط الخاص بقراءة هذا العداد والذي سيتم توجيه القارئ إليه عند مسح الـ QR
             $scanUrl = url("/api/reader/meters/{$meter->id}/record-reading");
@@ -211,3 +226,4 @@ class MeterController extends Controller
         }
     }
 }
+

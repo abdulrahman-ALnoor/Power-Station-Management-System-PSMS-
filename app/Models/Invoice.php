@@ -23,7 +23,7 @@ class Invoice extends Model
         'status',
         'payment_notes',
         'pdf_path'
-        
+
     ];
 
     protected function casts(): array
@@ -44,7 +44,7 @@ class Invoice extends Model
             // يتم التوليد فقط إذا لم يُرسَل رقم فاتورة يدوي
             if (empty($invoice->invoice_number)) {
                 $year = date('Y');
-                
+
                 // جلب آخر فاتورة مُنشأة لحساب الرقم التسلسلي القادم
                 $latestInvoice = static::withTrashed()->latest('id')->first();
                 $nextSequence = $latestInvoice ? ($latestInvoice->id + 1) : 1;

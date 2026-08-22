@@ -44,6 +44,14 @@ class UpdateMeterReadingRequest extends FormRequest
                 'string',
                 'max:1000',
             ],
+
+            // كانت status مفقودة من هذا الملف بالكامل رغم إن الكنترولر يعتمد عليها
+            // ($validated['status'] ?? ...) لاعتماد/رفض القراءة — يعني عملياً ما
+            // كان فيه طريقة يغيّر فيها الأدمن حالة القراءة عبر endpoint التحديث.
+            'status' => [
+                'sometimes',
+                'in:pending,approved,rejected',
+            ],
         ];
     }
     public function messages(): array
@@ -61,6 +69,8 @@ class UpdateMeterReadingRequest extends FormRequest
 
             'notes.string' => 'الملاحظات يجب أن تكون نصًا.',
             'notes.max' => 'الملاحظات يجب ألا تتجاوز 1000 حرف.',
+
+            'status.in' => 'حالة القراءة غير صحيحة.',
         ];
     }
 }

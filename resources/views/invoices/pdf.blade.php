@@ -10,27 +10,36 @@
 
     <style>
         @page {
-            margin: 30px;
+            margin: 25px;
+        }
+
+        * {
+            font-family: DejaVu Sans, sans-serif;
         }
 
         body {
-            font-family: DejaVu Sans, sans-serif;
             direction: rtl;
             text-align: right;
+            font-family: DejaVu Sans, sans-serif;
             font-size: 13px;
             color: #333;
+            line-height: 1.8;
         }
 
         .header {
             width: 100%;
             border-bottom: 2px solid #222;
             padding-bottom: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .header-table {
             width: 100%;
             border-collapse: collapse;
+        }
+
+        .header-table td {
+            vertical-align: top;
         }
 
         .company-name {
@@ -55,7 +64,7 @@
             font-weight: bold;
             background: #eeeeee;
             padding: 8px;
-            margin-top: 20px;
+            margin-top: 18px;
             margin-bottom: 10px;
         }
 
@@ -111,6 +120,7 @@
         }
 
         .amount {
+            direction: ltr;
             text-align: left;
             font-weight: bold;
         }
@@ -122,8 +132,23 @@
 
         .notes {
             border: 1px solid #ddd;
-            padding: 10px;
+            padding: 12px;
             margin-top: 10px;
+            min-height: 35px;
+            background: #fafafa;
+            white-space: normal;
+        }
+
+        .signature-table {
+            width: 100%;
+            margin-top: 50px;
+            text-align: center;
+            border-collapse: collapse;
+        }
+
+        .signature-table td {
+            width: 50%;
+            vertical-align: top;
         }
 
         .footer {
@@ -135,58 +160,136 @@
             color: #777;
         }
 
-        .signature-table {
-            width: 100%;
-            margin-top: 50px;
-            text-align: center;
-        }
+.header {
+    width: 100%;
+    border-bottom: 2px solid #222;
+    padding-bottom: 15px;
+    margin-bottom: 25px;
+}
 
-        .signature-table td {
-            width: 50%;
-        }
+.header-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.header-table td {
+    vertical-align: middle;
+}
+
+.company-cell {
+    width: 40%;
+    text-align: right;
+}
+
+.logo-cell {
+    width: 20%;
+    text-align: center;
+}
+
+.invoice-cell {
+    width: 40%;
+    text-align: left;
+}
+
+.station-logo {
+    display: block;
+    width: 75px;
+    height: auto;
+    margin: 0 auto;
+}
+
+.company-name {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.company-subtitle {
+    font-size: 13px;
+    margin-bottom: 3px;
+}
+
+.company-info {
+    font-size: 11px;
+}
+
+.invoice-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.invoice-number {
+    font-size: 11px;
+    margin-top: 4px;
+}
     </style>
 </head>
 
 <body>
 
-    {{-- Header --}}
-    <div class="header">
 
-        <table class="header-table">
+{{-- Header --}}
+<div class="header">
 
-            <tr>
+    <table class="header-table">
 
-                <td>
-                    <div class="company-name">
-                        نظام إدارة محطة الكهرباء
-                    </div>
+        <tr>
 
-                    <div>
-                        فاتورة خدمات الكهرباء
-                    </div>
-                </td>
+            {{-- معلومات المحطة --}}
+            <td class="company-cell">
 
-                <td>
-                    <div class="invoice-title">
-                        فاتورة
-                    </div>
+                <div class="company-name">
+                    نظام إدارة محطة الكهرباء
+                </div>
 
-                    <div class="invoice-number">
-                        رقم الفاتورة:
-                        {{ $invoice->invoice_number }}
-                    </div>
+                <div class="company-subtitle">
+                    فاتورة خدمات الكهرباء
+                </div>
 
-                    <div class="invoice-number">
-                        التاريخ:
-                        {{ $invoice->created_at->format('Y-m-d') }}
-                    </div>
-                </td>
+                <div class="company-info">
+                    صنعاء - الجمهورية اليمنية
+                </div>
 
-            </tr>
+            </td>
 
-        </table>
 
-    </div>
+            {{-- شعار المحطة في الوسط --}}
+            <td class="logo-cell">
+
+                <img
+                    src="{{ public_path('images/station-logo.png') }}"
+                    class="station-logo"
+                    alt="شعار المحطة"
+                >
+
+            </td>
+
+
+            {{-- معلومات الفاتورة --}}
+            <td class="invoice-cell">
+
+                <div class="invoice-title">
+                    فاتورة
+                </div>
+
+                <div class="invoice-number">
+                    رقم الفاتورة:
+                    {{ $invoice->invoice_number }}
+                </div>
+
+                <div class="invoice-number">
+                    التاريخ:
+                    {{ $invoice->created_at->format('Y-m-d') }}
+                </div>
+
+            </td>
+
+        </tr>
+
+    </table>
+
+</div>
 
 
     {{-- بيانات العميل --}}
@@ -202,7 +305,7 @@
             </td>
 
             <td>
-                {{ $invoice->customer->full_name }}
+                {{ $invoice->customer->full_name ?? '-' }}
             </td>
         </tr>
 
@@ -212,42 +315,38 @@
             </td>
 
             <td>
-                {{ $invoice->customer->customer_number }}
+                {{ $invoice->customer->customer_number ?? '-' }}
             </td>
         </tr>
 
-        @if($invoice->customer->phone)
+        @if($invoice->customer->phone ?? false)
+            <tr>
+                <td class="label">
+                    رقم الهاتف
+                </td>
 
-        <tr>
-            <td class="label">
-                رقم الهاتف
-            </td>
-
-            <td>
-                {{ $invoice->customer->phone }}
-            </td>
-        </tr>
-
+                <td>
+                    {{ $invoice->customer->phone }}
+                </td>
+            </tr>
         @endif
 
-        @if($invoice->customer->address_description)
+        @if($invoice->customer->address_description ?? false)
+            <tr>
+                <td class="label">
+                    العنوان
+                </td>
 
-        <tr>
-            <td class="label">
-                العنوان
-            </td>
-
-            <td>
-                {{ $invoice->customer->address_description }}
-            </td>
-        </tr>
-
+                <td>
+                    {{ $invoice->customer->address_description }}
+                </td>
+            </tr>
         @endif
 
     </table>
 
 
-    {{-- بيانات العداد --}}
+    {{-- بيانات العداد والاستهلاك --}}
     <div class="section-title">
         بيانات العداد والاستهلاك
     </div>
@@ -255,25 +354,14 @@
     <table class="details-table">
 
         <thead>
-
             <tr>
-                <th>
-                    رقم العداد
-                </th>
-
-                <th>
-                    الاستهلاك
-                </th>
-
-                <th>
-                    قيمة الاستهلاك
-                </th>
+                <th>رقم العداد</th>
+                <th>الاستهلاك</th>
+                <th>قيمة الاستهلاك</th>
             </tr>
-
         </thead>
 
         <tbody>
-
             <tr>
 
                 <td>
@@ -286,12 +374,11 @@
                 </td>
 
                 <td>
-                    {{ number_format($invoice->consumptionCharge->total_amount, 2) }}
+                    {{ number_format($invoice->consumptionCharge->total_amount ?? 0, 2) }}
                     ريال
                 </td>
 
             </tr>
-
         </tbody>
 
     </table>
@@ -305,46 +392,39 @@
     <table class="payment-table">
 
         <tr>
-
             <td class="payment-label">
                 المبلغ المستحق قبل الدفع
             </td>
 
             <td class="amount">
-                {{ number_format($invoice->outstanding_before_payment, 2) }}
+                {{ number_format($invoice->outstanding_before_payment ?? 0, 2) }}
                 ريال
             </td>
-
         </tr>
 
         <tr>
-
             <td class="payment-label">
                 المبلغ المدفوع
             </td>
 
             <td class="amount">
-                {{ number_format($invoice->paid_amount, 2) }}
+                {{ number_format($invoice->paid_amount ?? 0, 2) }}
                 ريال
             </td>
-
         </tr>
 
         <tr>
-
             <td class="payment-label">
                 المبلغ المتبقي
             </td>
 
             <td class="amount">
-                {{ number_format($invoice->remaining_balance, 2) }}
+                {{ number_format($invoice->remaining_balance ?? 0, 2) }}
                 ريال
             </td>
-
         </tr>
 
         <tr>
-
             <td class="payment-label">
                 حالة الفاتورة
             </td>
@@ -353,32 +433,33 @@
 
                 @if($invoice->status === 'paid')
                     مدفوعة بالكامل
-                @else
+                @elseif($invoice->status === 'partially_paid')
                     مدفوعة جزئياً
+                @else
+                    غير محددة
                 @endif
 
             </td>
-
         </tr>
 
     </table>
 
 
-    {{-- ملاحظات الدفع --}}
-    @if($invoice->payment_notes)
+    {{-- ملاحظات / إشعار الدفع --}}
+    <div class="section-title">
+        ملاحظات وإشعار الدفع
+    </div>
 
-        <div class="section-title">
-            ملاحظات الدفع
-        </div>
-
-        <div class="notes">
+    <div class="notes">
+        @if(!empty($invoice->payment_notes))
             {{ $invoice->payment_notes }}
-        </div>
+        @else
+            لا توجد ملاحظات أو إشعار إضافي لهذه الفاتورة.
+        @endif
+    </div>
 
-    @endif
 
-
-    {{-- المحاسب --}}
+    {{-- التوقيعات --}}
     <table class="signature-table">
 
         <tr>
@@ -387,6 +468,7 @@
                 المحاسب
                 <br>
                 <br>
+
                 {{ $invoice->accountant->name ?? '-' }}
             </td>
 
@@ -394,6 +476,7 @@
                 توقيع العميل
                 <br>
                 <br>
+
                 ____________________
             </td>
 
